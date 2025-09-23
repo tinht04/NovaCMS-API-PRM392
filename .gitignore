@@ -52,3 +52,31 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio
+.vs
+
+# Rider / VS Code
+.idea/
+.vscode/
+*.user
+*.suo
+*.userprefs
+
+# ASP.NET Core config & secrets
+appsettings.*.json
+secrets.json
+
+# Publish outputs
+publish/
+out/
+
+# Frontend (if integrated)
+node_modules/
+dist/
+wwwroot/lib/
+
+# Publish profiles
+*.pubxml
+*.publishproj
+*.azurePubxml
