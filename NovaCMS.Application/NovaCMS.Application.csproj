@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<ItemGroup>
+
+		<Folder Include="DTOs\Authentication\Responses\" />
+
+		<Folder Include="DTOs\Category\Requests\" />
+
+		<Folder Include="DTOs\Dashboard\Requests\" />
+
+		<Folder Include="DTOs\EquipmentImage\Requests\" />
+
+		<Folder Include="DTOs\Equipment\Requests\" />
+
+		<Folder Include="DTOs\Invoice\Response\" />
+
+		<Folder Include="DTOs\Invoice\Request\" />
+
+		<Folder Include="DTOs\Order\Requests\" />
+
+		<Folder Include="Enums\" />
+
+		<Folder Include="Helpers\" />
+
+		<Folder Include="Validators\" />
+
+
+		<Folder Include="Utils\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AutoMapper" Version="14.0.0" />
+		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.27.6" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.16" />
+		<PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\NovaCMS.Domain\NovaCMS.Domain.csproj" />
+	</ItemGroup>
+</Project>
