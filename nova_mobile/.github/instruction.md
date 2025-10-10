@@ -151,3 +151,91 @@ Mục tiêu: cung cấp quy tắc rõ ràng để các thành viên triển khai
 
 ---
 
+
+
+# Nova Mobile — Setup & Run (Windows / PowerShell)
+
+Tài liệu ngắn gọn để chạy project khi clone từ GitHub (dành cho môi trường Windows, PowerShell).
+
+Mục tiêu: hướng dẫn cài dependency, cấu hình dev và các lệnh để chạy Flutter app.
+
+---
+
+## 1. Yêu cầu trước khi bắt đầu
+- Git
+- Flutter SDK (thêm vào PATH)
+- .NET SDK (nếu bạn chạy backend local)
+- Android SDK / Android Studio (nếu chạy trên emulator / Android)
+- Java JDK (nếu làm Android builds)
+
+Kiểm tra nhanh:
+
+```powershell
+# Kiểm tra các công cụ
+git --version
+flutter --version
+dotnet --info
+```
+
+---
+
+## 2. Clone repo
+
+Clone repository, rồi vào thư mục mobile:
+
+```powershell
+Set-Location -Path 'D:\'
+git clone <your-repo-url>
+# vào thư mục mobile
+Set-Location -Path 'D:\Mobile\nova_mobile'
+```
+
+---
+
+## 3. Thiết lập Mobile (Flutter)
+
+1. Cài dependencies:
+
+```powershell
+Set-Location -Path 'D:\Mobile\nova_mobile'
+flutter pub get
+```
+
+2. Clean (nếu cần):
+
+```powershell
+flutter clean
+Remove-Item -Recurse -Force .\build -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force .\.dart_tool -ErrorAction SilentlyContinue
+flutter pub get
+```
+
+3. Android (tuỳ chọn):
+
+```powershell
+Set-Location -Path 'D:\Mobile\nova_mobile\android'
+.\gradlew.bat clean
+```
+
+4. Chạy ứng dụng:
+
+- Flutter web (Chrome):
+
+```powershell
+Set-Location -Path 'D:\Mobile\nova_mobile'
+flutter run -d chrome
+```
+
+- Android emulator:
+
+```powershell
+Set-Location -Path 'D:\Mobile\nova_mobile'
+flutter devices
+flutter run -d <device-id>
+```
+
+Lưu ý: file `lib/core/env.dart` trong repo đã có logic platform-aware; web thường gọi `http://localhost:5162`, Android emulator dùng `http://10.0.2.2:5162`.
+
+---
+
+
