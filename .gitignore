@@ -56,9 +56,14 @@ nunit-*.xml
 # Visual Studio
 .vs
 
+#Visual Studio Code
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+
+
 # Rider / VS Code
 .idea/
-.vscode/
 *.user
 *.suo
 *.userprefs

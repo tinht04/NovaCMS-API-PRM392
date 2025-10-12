@@ -1,0 +1,32 @@
+// file: .vscode/launch.json
+//khi chạy đồng thời FE và BE, cần chạy compound "Run FE + BE" nếu mà FE ko chạy đc thì chạy
+//flutter config --enable-web để enable web
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Run FE + BE",
+      "configurations": ["Launch Backend", "Launch Frontend (Flutter - Edge)"]
+    }
+  ],
+  "configurations": [
+    {
+      "name": "Launch Backend",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/backend/NovaCMS.WebAPI/bin/Debug/net8.0/NovaCMS.API.dll",
+      "cwd": "${workspaceFolder}/backend/NovaCMS.WebAPI",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Launch Frontend (Flutter - Edge)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "${workspaceFolder}/frontend/lib/main.dart",
+      "deviceId": "edge",
+      "args": ["--web-port=8080"]
+    }
+  ]
+}

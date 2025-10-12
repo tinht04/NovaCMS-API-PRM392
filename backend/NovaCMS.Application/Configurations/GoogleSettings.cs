@@ -1,0 +1,19 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace NovaCMS.Application.Configurations
+{
+    public class GoogleSettings
+    {
+        public string ClientId { get; init; } = default!;
+        public string ClientSecret { get; init; } = default!;
+        public string RedirectUri { get; init; } = default!;
+        public string Scopes { get; init; } = default!;
+        public string AuthorizationEndpoint { get; init; } = default!;
+        public string TokenEndpoint { get; init; } = default!;
+        public string UserInfoEndpoint { get; init; } = default!;
+    }
+}
