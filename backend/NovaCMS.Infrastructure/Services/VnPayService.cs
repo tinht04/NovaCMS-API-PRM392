@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NovaCMS.Application.Services
+namespace NovaCMS.Infrastructure.Services
 {
 	public class VnPayService : IVnPayService
 	{

@@ -39,9 +39,9 @@ public partial class NovaCMSDBContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseMySql("server=mysql-database-tinht-fptu.b.aivencloud.com;port=20277;database=NovaCMS;user=avnadmin;password=AVNS_9YwLqVnHoOLgvuOYaGJ", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.35-mysql"));
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseMySql("server=mysql-database-tinht-fptu.b.aivencloud.com;port=20277;database=NovaCMS;user=avnadmin;password=AVNS_9YwLqVnHoOLgvuOYaGJ", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.35-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -189,11 +189,12 @@ public partial class NovaCMSDBContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.PaymentMethod)
                 .HasDefaultValueSql("'Cash'")
-                .HasColumnType("enum('Cash','BankTransfer','Momo','ZaloPay','VnPay')");
+                .HasColumnType("enum('Cash','BankTransfer','Momo','ZaloPay')");
             entity.Property(e => e.PaymentStatus)
                 .HasDefaultValueSql("'Unpaid'")
                 .HasColumnType("enum('Unpaid','Paid','Refunded')");
             entity.Property(e => e.TransactionId).HasMaxLength(100);
+
             entity.HasOne(d => d.CreatedByStaff).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.CreatedByStaffId)
                 .HasConstraintName("Invoices_ibfk_2");

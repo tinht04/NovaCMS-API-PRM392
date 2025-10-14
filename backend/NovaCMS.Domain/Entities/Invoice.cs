@@ -21,6 +21,8 @@ public partial class Invoice
 
     public string? PaymentStatus { get; set; }
 
+    public string? TransactionId { get; set; }
+
     public virtual User? CreatedByStaff { get; set; }
 
     public virtual RentalOrder Order { get; set; } = null!;

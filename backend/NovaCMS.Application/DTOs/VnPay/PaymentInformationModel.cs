@@ -10,7 +10,7 @@ namespace NovaCMS.Application.DTOs.VnPay
 	{
 		public string OrderType { get; set; } = "other";
 		public double Amount { get; set; }
-		public string OrderDescription { get; set; }
+        public string OrderDescription { get; set; }
 		public string Name { get; set; }
 	}
 
