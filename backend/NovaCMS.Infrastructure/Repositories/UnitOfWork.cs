@@ -13,27 +13,41 @@ namespace NovaCMS.Infrastructure.Repositories
         private IDbContextTransaction? _transaction;
         private readonly ILogger<UnitOfWork> _logger;
 
-        public UnitOfWork(NovaCMSDBContext context, ILogger<UnitOfWork> logger)
+        public UnitOfWork(
+            NovaCMSDBContext context,
+            ILogger<UnitOfWork> logger,
+            IUserRepository users,
+            IEquipmentRepository equipments,
+            IEquipmentItemRepository equipmentItems,
+            ICategoryRepository categories,
+            IOrderRepository orders,
+            IOrderDetailRepository orderDetails,
+            IInvoiceRepository invoices,
+            IRentalOrderDetailRepository rentalOrderDetails)
         {
             _context = context;
             _logger = logger;
 
-            // Repository initialization using Dependency Injection
-            Users = new UserRepository(_context);
-            Equipments = new EquipmentRepository(_context);
-            EquipmentItems = new EquipmentItemRepository(_context);
-			Categories = new CategoryRepository(_context);
-            Orders = new OrderRepository(_context);
-            OrderDetails = new OrderDetailRepository(_context);
-            Invoices = new InvoiceRepository(_context);
-            RentalOrderDetails = new RentalOrderDetailRepository(_context);
+            Users = users;
+            Equipments = equipments;
+            EquipmentItems = equipmentItems;
+            Categories = categories;
+            Orders = orders;
+            OrderDetails = orderDetails;
+            Invoices = invoices;
+            RentalOrderDetails = rentalOrderDetails;
         }
 
+        public IUserRepository Users { get; }
+        public IEquipmentRepository Equipments { get; }
+        public IEquipmentItemRepository EquipmentItems { get; }
+        public ICategoryRepository Categories { get; }
+        public IOrderRepository Orders { get; }
+        public IOrderDetailRepository OrderDetails { get; }
+        public IInvoiceRepository Invoices { get; }
+        public IRentalOrderDetailRepository RentalOrderDetails { get; }
 
-        public async Task<int> SaveChangesAsync()
-        {
-            return await _context.SaveChangesAsync();
-        }
+        public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 
         public async Task BeginTransactionAsync()
         {
@@ -82,19 +96,5 @@ namespace NovaCMS.Infrastructure.Repositories
 
             return Task.FromResult<ITransaction?>(new EfTransaction(_transaction));
         }
-        //This place to start progress dependency injection
-        public IUserRepository Users { get; private set; }
-        public IEquipmentRepository Equipments { get; private set; }
-		public ICategoryRepository Categories { get; private set; }
-
-        public IEquipmentItemRepository EquipmentItems { get; private set; }
-
-        public IOrderRepository Orders { get; private set; }
-
-        public IOrderDetailRepository OrderDetails { get; private set; }
-
-        public IInvoiceRepository Invoices { get; private set; }
-
-        public IRentalOrderDetailRepository RentalOrderDetails { get; private set; }
     }
 }

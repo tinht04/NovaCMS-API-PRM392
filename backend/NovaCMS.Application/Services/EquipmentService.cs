@@ -35,8 +35,16 @@ namespace NovaCMS.Application.Services
 
 			if (equipment == null)
 				return null;
+            var trueAvailableStock = await _unitOfWork.EquipmentItems.GetAvailableStockAsync(
+                    equipment.EquipmentId,
+                    DateTime.UtcNow, // Hoặc một khoảng thời gian mặc định
+                    DateTime.UtcNow.AddDays(1)
+                );
 
-			var response = _mapper.Map<EquipmentResponse>(equipment);
+            // Cập nhật lại trạng thái
+            equipment.Stock = trueAvailableStock;
+            equipment.Status = trueAvailableStock > 0 ? "Còn hàng" : "Hết hàng";
+            var response = _mapper.Map<EquipmentResponse>(equipment);
 			var imageResponses = _mapper.Map<List<EquipmentImageResponse>>(equipment.EquipmentImages);
 			response.imageResponses = imageResponses;
 
@@ -51,18 +59,23 @@ namespace NovaCMS.Application.Services
 			// Map Equipment entities sang EquipmentResponse DTOs sử dụng AutoMapper
 			var equipmentResponses = _mapper.Map<List<EquipmentResponse>>(equipmentList);
 
-			// Đảm bảo mỗi equipment có list images được map đúng
-			foreach (var equipmentResponse in equipmentResponses)
-			{
-				var equipment = equipmentList.FirstOrDefault(e => e.EquipmentId == equipmentResponse.EquipmentId);
-				if (equipment != null)
-				{
-					equipmentResponse.imageResponses = _mapper.Map<List<EquipmentImageResponse>>(equipment.EquipmentImages);
-				}
-			}
+            foreach (var equipment in equipmentResponses)
+            {
+                // Lấy số lượng thực tế có sẵn, đã trừ đi số lượng bị giữ trong Redis
+                var trueAvailableStock = await _unitOfWork.EquipmentItems.GetAvailableStockAsync(
+                    equipment.EquipmentId,
+                    DateTime.UtcNow, // Hoặc một khoảng thời gian mặc định
+                    DateTime.UtcNow.AddDays(1)
+                );
 
-			// Tạo pagination response
-			var paginationResponse = new PaginationResponse<EquipmentResponse>();
+                // Cập nhật lại trạng thái
+                equipment.Stock = trueAvailableStock;
+				equipment.Status = trueAvailableStock > 0 ? "Còn hàng" : "Hết hàng";
+                equipment.IsAvailable = trueAvailableStock > 0;
+            }
+
+            // Tạo pagination response
+            var paginationResponse = new PaginationResponse<EquipmentResponse>();
 			return paginationResponse.Paginate(equipmentResponses, totalCount, filter.PageNumber, filter.PageSize);
 		}
 

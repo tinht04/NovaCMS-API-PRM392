@@ -2,6 +2,7 @@
 using NovaCMS.Application.DTOs.RentalOrder;
 using NovaCMS.Application.DTOs.RentalOrder.Requests;
 using NovaCMS.Application.DTOs.RentalOrder.Responses;
+using NovaCMS.Application.DTOs.VnPay;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +20,7 @@ namespace NovaCMS.Application.Interfaces.IServices
 		Task<bool> CheckEquipmentAvailabilityAsync(int equipmentId, DateTime startDate, DateTime endDate, int quantity);
 		Task<PaginationResponse<RentalOrderResponse>> GetAllOrdersAsync(OrderFilterDto filter);
 		Task<List<string>> GetOrderStatusesAsync();
-	}
+		Task<RentalOrderResponse> CreateOrderFromReservationAsync(string reservationId, PaymentResponseModel paymentDetails);
+
+    }
 }

@@ -13,10 +13,12 @@ namespace NovaCMS.Infrastructure.Repositories
 	public class EquipmentItemRepository : GenericRepository<EquipmentItem>, IEquipmentItemRepository
 	{
 		private readonly NovaCMSDBContext _context;
-		public EquipmentItemRepository(NovaCMSDBContext context) : base(context)
+        private readonly IRedisService _redisService;
+        public EquipmentItemRepository(NovaCMSDBContext context, IRedisService redisService) : base(context)
 		{
 			_context = context;
-		}
+            _redisService = redisService;
+        }
 
 		public async Task<bool> CheckAvailabilityAsync(int equipmentId, DateTime startDate, DateTime endDate, int quantity)
 		{
@@ -24,34 +26,56 @@ namespace NovaCMS.Infrastructure.Repositories
 			return availableCount >= quantity;
 		}
 
-		public async Task<List<EquipmentItem>> GetAvailableItemsAsync(int equipmentId, DateTime startDate, DateTime endDate, int quantity)
-		{
-			var availableItems = await _context.EquipmentItems
-				.Where(ei => ei.EquipmentId == equipmentId &&
-						   ei.Status == "Available" &&
-						   !ei.RentalOrderDetails.Any(rod =>
-							   rod.RentalStartDate < endDate &&
-							   rod.RentalEndDate > startDate &&
-							   rod.ReturnDate == null)) // Chưa được trả
-				.Take(quantity)
-				.ToListAsync();
+        private async Task<List<EquipmentItem>> GetPotentiallyAvailableItemsAsync(int equipmentId, DateTime startDate, DateTime endDate)
+        {
+            return await _context.EquipmentItems
+                .Where(ei => ei.EquipmentId == equipmentId &&
+                             ei.Status == "Available" &&
+                             !ei.RentalOrderDetails.Any(rod =>
+                                 rod.RentalStartDate < endDate &&
+                                 rod.RentalEndDate > startDate &&
+                                 rod.ReturnDate == null))
+                .ToListAsync();
+        }
 
-			return availableItems;
-		}
+        public async Task<List<EquipmentItem>> GetAvailableItemsAsync(int equipmentId, DateTime startDate, DateTime endDate, int quantity)
+        {
+            // Lấy TẤT CẢ các item có thể phù hợp từ DB
+            var potentiallyAvailableItems = await GetPotentiallyAvailableItemsAsync(equipmentId, startDate, endDate);
 
-		public async Task<int> GetAvailableStockAsync(int equipmentId, DateTime startDate, DateTime endDate)
-		{
-			var availableCount = await _context.EquipmentItems
-				.Where(ei => ei.EquipmentId == equipmentId &&
-						   ei.Status == "Available" &&
-						   !ei.RentalOrderDetails.Any(rod =>
-							   rod.RentalStartDate < endDate &&
-							   rod.RentalEndDate > startDate &&
-							   rod.ReturnDate == null))
-				.CountAsync();
+            // Lọc những item không bị giữ trong Redis
+            var trulyAvailableItems = new List<EquipmentItem>();
+            foreach (var item in potentiallyAvailableItems)
+            {
+                var key = $"reservation:item:{item.ItemId}";
+                if (!await _redisService.ExistsAsync(key))
+                {
+                    trulyAvailableItems.Add(item);
+                }
+            }
 
-			return availableCount;
-		}
+            // Cuối cùng, lấy đúng số lượng cần thiết
+            return trulyAvailableItems.Take(quantity).ToList();
+        }
+
+        public async Task<int> GetAvailableStockAsync(int equipmentId, DateTime startDate, DateTime endDate)
+        {
+            // Lấy TẤT CẢ các item có thể phù hợp từ DB
+            var potentiallyAvailableItems = await GetPotentiallyAvailableItemsAsync(equipmentId, startDate, endDate);
+
+            // Đếm số lượng item không bị giữ trong Redis
+            int availableCount = 0;
+            foreach (var item in potentiallyAvailableItems)
+            {
+                var key = $"reservation:item:{item.ItemId}";
+                if (!await _redisService.ExistsAsync(key))
+                {
+                    availableCount++;
+                }
+            }
+
+            return availableCount;
+        }
 
         public async Task<int> GetAvailableEquipmentsAsync()
         {

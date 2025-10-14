@@ -2,6 +2,8 @@
 using Autofac.Extensions.DependencyInjection;
 using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NovaCMS.API.Configurations;
@@ -12,6 +14,7 @@ using NovaCMS.Application.Mappers;
 using NovaCMS.Infrastructure.Configurations;
 using NovaCMS.Infrastructure.Services;
 using NovaCMS.Infrastructure.Services.RAG;
+using StackExchange.Redis;
 using System.Reflection;
 using System.Text;
 
@@ -125,6 +128,41 @@ builder.Services.AddSingleton(cloudinary);
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 #endregion
 
+#region Redis
+builder.Services.Configure<NovaCMS.Application.Configurations.RedisSettings>(
+    builder.Configuration.GetSection("RedisSettings")); 
+
+// (Nên dùng tên biến rõ ràng như RedisSettings.SectionName chỉ để tránh lỗi typo, 
+// nhưng dùng string literal "RedisSettings" vẫn chấp nhận được nếu bạn không muốn const string.)
+var redisConfig = builder.Configuration.GetSection("RedisSettings")
+                                       .Get<NovaCMS.Application.Configurations.RedisSettings>()
+                  ?? throw new InvalidOperationException("RedisSettings configuration is missing or invalid.");
+
+// 2. Tạo IConnectionMultiplexer (Sử dụng object đã được Get)
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var options = new ConfigurationOptions
+    {
+        EndPoints = { { redisConfig.Host, redisConfig.Port } },
+        User = redisConfig.User,
+        Password = redisConfig.Password,
+        Ssl = redisConfig.Ssl,
+        AbortOnConnectFail = false,
+        ConnectTimeout = 15000
+    };
+    return ConnectionMultiplexer.Connect(options);
+});
+
+// 3. Đăng ký IDistributedCache
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = $"{redisConfig.Host}:{redisConfig.Port},user={redisConfig.User},password={redisConfig.Password},ssl={redisConfig.Ssl.ToString().ToLower()},abortConnect=false";
+    options.InstanceName = "NovaCMS";
+});
+
+#endregion
+
+
 // Đăng ký Options pattern cho Gemini
 builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection("Gemini"));
 
@@ -136,7 +174,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
 //{
-    app.UseSwagger();
+app.UseSwagger();
     app.UseSwaggerUI();
 //}
 

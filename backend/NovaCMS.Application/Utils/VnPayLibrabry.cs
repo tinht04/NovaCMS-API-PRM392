@@ -33,7 +33,8 @@ namespace NovaCMS.Application.Utils
 				}
 			}
 
-			var orderId = Convert.ToInt64(vnPay.GetResponseData("vnp_TxnRef"));
+            var amount = Convert.ToInt64(vnPay.GetResponseData("vnp_Amount"));
+            var orderId = Convert.ToInt64(vnPay.GetResponseData("vnp_TxnRef"));
 			var vnPayTranId = Convert.ToInt64(vnPay.GetResponseData("vnp_TransactionNo"));
 			var vnpResponseCode = vnPay.GetResponseData("vnp_ResponseCode");
 			var vnpSecureHash =
@@ -54,7 +55,8 @@ namespace NovaCMS.Application.Utils
 				PaymentMethod = "VnPay",
 				OrderDescription = orderInfo,
 				OrderId = orderId.ToString(),
-				PaymentId = vnPayTranId.ToString(),
+				Amount = amount / 100,
+                PaymentId = vnPayTranId.ToString(),
 				TransactionId = vnPayTranId.ToString(),
 				Token = vnpSecureHash,
 				VnPayResponseCode = vnpResponseCode

@@ -18,7 +18,8 @@ namespace NovaCMS.Application.DTOs.Equipment.Responses
 		public string? Status { get; set; }
 		public int? Stock { get; set; }
 		public string? CategoryName { get; set; }
-		public List<EquipmentImageResponse> imageResponses { get; set; } = new();
+        public string? ThumbNail { get; set; } //ThumbNail image url
+        public List<EquipmentImageResponse> imageResponses { get; set; } = new();
 		public double AverageRating { get; set; }
 		public int ReviewCount { get; set; }
 		public bool IsAvailable { get; set; }

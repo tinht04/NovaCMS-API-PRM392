@@ -38,9 +38,20 @@ namespace NovaCMS.API.Configurations
                 return new NovaCMSDBContext(optionsBuilder.Options);
             }).InstancePerLifetimeScope();
 
+            // Register repositories
+            builder.RegisterType<UserRepository>().As<IUserRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<EquipmentRepository>().As<IEquipmentRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<EquipmentItemRepository>().As<IEquipmentItemRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<CategoryRepository>().As<ICategoryRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<OrderRepository>().As<IOrderRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<OrderDetailRepository>().As<IOrderDetailRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<InvoiceRepository>().As<IInvoiceRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<RentalOrderDetailRepository>().As<IRentalOrderDetailRepository>().InstancePerLifetimeScope();
 
+            // Register UnitOfWork
+            builder.RegisterType<UnitOfWork>().As<IUnitOfWork>().InstancePerLifetimeScope();
             // Register services           
-            //builder.RegisterType<JWTService>().As<IJWTService>().InstancePerLifetimeScope();
+
             builder.RegisterType<UnitOfWork>().As<IUnitOfWork>().InstancePerLifetimeScope();
             builder.RegisterType<UserService>().As<IUserService>().InstancePerLifetimeScope();
             builder.RegisterType<VnPayService>().As<IVnPayService>().InstancePerLifetimeScope();
@@ -51,13 +62,14 @@ namespace NovaCMS.API.Configurations
             builder.RegisterType<InvoiceRepository>().As<IInvoiceRepository>().InstancePerLifetimeScope();
             builder.RegisterType<DashboardService>().As<IDashboardService>().InstancePerLifetimeScope();
             builder.RegisterType<OrderService>().As<IOrderService>().InstancePerLifetimeScope();
-
             builder.RegisterType<JsonVectorStore>()
                    .As<IVectorStore>()
                    .SingleInstance(); // JSON store: shared toàn app
-
             builder.RegisterType<EquipmentRagService>().As<IEquipmentRagService>()
                    .InstancePerLifetimeScope();
+            builder.RegisterType<RedisService>().As<IRedisService>().InstancePerLifetimeScope();
+            builder.RegisterType<CartService>().As<ICartService>().InstancePerLifetimeScope();
+            builder.RegisterType<ReservationService>().As<IReservationService>().InstancePerLifetimeScope();
         }
     }
 }
