@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../repositories/product_repository.dart';
 import '../../core/network/api_client.dart';
+import '../../services/cart_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key});
@@ -85,8 +86,87 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Row(children: [Text('Price/day: ₫${price.toString()}', style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 12), Text('Deposit: ₫${deposit.toString()}')]),
             const SizedBox(height: 8),
             Text('Stock: $stock • ${available ? 'Available' : 'Not available'}'),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/cart'), child: const Text('Add to cart')),
+            const SizedBox(height: 12),
+            if (stock == 0)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.red.shade200)),
+                child: const Text('Hết máy cho thuê — vui lòng quay lại lúc khác', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: stock == 0 ? null : () async {
+              // Show a clear dialog with labeled Start and End fields so user knows which is which
+              final result = await showDialog<Map<String, DateTime>?>(
+                context: context,
+                builder: (ctx) {
+                  DateTime? localStart = DateTime.now();
+                  DateTime? localEnd = DateTime.now().add(const Duration(days: 1));
+                  return StatefulBuilder(builder: (ctx, setState) {
+                    String fmt(DateTime? d) => d == null ? 'Not selected' : d.toLocal().toString().split('.').first;
+                    return AlertDialog(
+                      title: const Text('Select rental period'),
+                      content: Column(mainAxisSize: MainAxisSize.min, children: [
+                        ListTile(
+                          title: const Text('Start'),
+                          subtitle: Text(fmt(localStart)),
+                          trailing: TextButton(
+                            onPressed: () async {
+                              final d = await showDatePicker(context: ctx, initialDate: localStart ?? DateTime.now(), firstDate: DateTime.now().subtract(const Duration(days: 1)), lastDate: DateTime.now().add(const Duration(days: 365)));
+                              if (d == null) return;
+                              final t = await showTimePicker(context: ctx, initialTime: TimeOfDay.fromDateTime(localStart ?? DateTime.now()));
+                              final dt = DateTime(d.year, d.month, d.day, t?.hour ?? 0, t?.minute ?? 0);
+                              setState(() => localStart = dt);
+                            },
+                            child: const Text('Select'),
+                          ),
+                        ),
+                        ListTile(
+                          title: const Text('End'),
+                          subtitle: Text(fmt(localEnd)),
+                          trailing: TextButton(
+                            onPressed: () async {
+                              final initial = localEnd ?? (localStart?.add(const Duration(days: 1)) ?? DateTime.now().add(const Duration(days: 1)));
+                              final d = await showDatePicker(context: ctx, initialDate: initial, firstDate: localStart ?? DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+                              if (d == null) return;
+                              final t = await showTimePicker(context: ctx, initialTime: TimeOfDay.fromDateTime(localEnd ?? DateTime.now()));
+                              final dt = DateTime(d.year, d.month, d.day, t?.hour ?? 0, t?.minute ?? 0);
+                              setState(() => localEnd = dt);
+                            },
+                            child: const Text('Select'),
+                          ),
+                        ),
+                      ]),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+                        ElevatedButton(onPressed: () {
+                          if (localStart == null || localEnd == null) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please select both start and end')));
+                            return;
+                          }
+                          if (!localEnd!.isAfter(localStart!)) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('End must be after start')));
+                            return;
+                          }
+                          Navigator.of(ctx).pop({'start': localStart!, 'end': localEnd!});
+                        }, child: const Text('Add to cart')),
+                      ],
+                    );
+                  });
+                }
+              );
+
+              if (result == null) return; // user cancelled
+              final start = result['start']!;
+              final end = result['end']!;
+              final cartItem = Map<String, dynamic>.from(_item!);
+              cartItem['rentalStartDate'] = start.toUtc().toIso8601String();
+              cartItem['rentalEndDate'] = end.toUtc().toIso8601String();
+              CartService.instance.addItem(cartItem);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+            }, child: const Text('Add to cart')),
           ]),
         ),
       ),

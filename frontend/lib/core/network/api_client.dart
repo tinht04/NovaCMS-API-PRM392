@@ -28,12 +28,22 @@ class ApiClient {
       } catch (_) {}
       return handler.next(options);
     }, onError: (e, handler) async {
-      // If the server returns HTTP 401, wrap into an UnauthorizedException so callers can handle login flow
-      final status = e.response?.statusCode;
-      if (status == 401) {
-        // wrap into a DioException so callers can detect and react
-        final dioEx = DioException(requestOptions: e.requestOptions, error: UnauthorizedException('Unauthorized'));
-        return handler.reject(dioEx);
+      // Try to parse server error body into ApiResponseWrapper and create ApiException
+      try {
+        final status = e.response?.statusCode;
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          // Use the same wrapper to extract message/errors if present
+          final wrapper = ApiResponseWrapper.fromMap(Map<String, dynamic>.from(data));
+          final apiEx = ApiException(wrapper.message.isNotEmpty ? wrapper.message : 'API error', statusCode: wrapper.statusCode, errors: wrapper.errors);
+          return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
+        }
+        if (status == 401) {
+          final apiEx = ApiException('Unauthorized', statusCode: 401);
+          return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
+        }
+      } catch (_) {
+        // fallthrough to next
       }
       return handler.next(e);
     }));
@@ -64,19 +74,39 @@ class ApiClient {
   /// Convenience: performs GET and unwraps ApiResponse (generic)
   Future<dynamic> getData(String path, {Map<String, dynamic>? queryParameters}) async {
     final resp = await get(path, queryParameters: queryParameters);
+    // Some backend endpoints return an unwrapped object (e.g. { paymentUrl: '...' })
+    // In that case return resp.data directly so callers expecting that shape can use it.
+    if (resp.data is Map && (resp.data as Map).containsKey('paymentUrl')) {
+      return resp.data;
+    }
     final map = resp.data is Map ? Map<String, dynamic>.from(resp.data) : {'data': resp.data};
+    // If the server didn't include a statusCode in the JSON wrapper, use the HTTP status code
+    if (!map.containsKey('statusCode') && resp.statusCode != null) {
+      map['statusCode'] = resp.statusCode;
+    }
     final wrapper = ApiResponseWrapper.fromMap(map);
     if (wrapper.statusCode >= 200 && wrapper.statusCode < 300) return wrapper.data;
-    throw Exception('${wrapper.message} ${wrapper.errors.join(', ')}');
+    final msg = wrapper.message.isNotEmpty ? wrapper.message : 'API error';
+    throw ApiException(msg, statusCode: wrapper.statusCode, errors: wrapper.errors);
   }
 
   /// Convenience: performs POST and unwraps ApiResponse (generic)
   Future<dynamic> postData(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
     final resp = await post(path, data: data, queryParameters: queryParameters);
+    // Special-case: some endpoints (like Payment) return unwrapped objects
+    // e.g. { paymentUrl: 'https://...' } - return resp.data directly
+    if (resp.data is Map && (resp.data as Map).containsKey('paymentUrl')) {
+      return resp.data;
+    }
     final map = resp.data is Map ? Map<String, dynamic>.from(resp.data) : {'data': resp.data};
+    // If the server didn't include a statusCode in the JSON wrapper, use the HTTP status code
+    if (!map.containsKey('statusCode') && resp.statusCode != null) {
+      map['statusCode'] = resp.statusCode;
+    }
     final wrapper = ApiResponseWrapper.fromMap(map);
     if (wrapper.statusCode >= 200 && wrapper.statusCode < 300) return wrapper.data;
-    throw Exception('${wrapper.message} ${wrapper.errors.join(', ')}');
+    final msg = wrapper.message.isNotEmpty ? wrapper.message : 'API error';
+    throw ApiException(msg, statusCode: wrapper.statusCode, errors: wrapper.errors);
   }
 }
 

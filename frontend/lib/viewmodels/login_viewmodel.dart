@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../repositories/auth_repository.dart';
+import '../core/network/exceptions.dart';
+import 'package:dio/dio.dart';
 
 class LoginViewModel extends ChangeNotifier {
   final AuthRepository _repo;
@@ -17,6 +19,24 @@ class LoginViewModel extends ChangeNotifier {
       loading = false;
       notifyListeners();
       return data.isNotEmpty;
+    } on ApiException catch (e) {
+      loading = false;
+      error = e.message;
+      notifyListeners();
+      return false;
+    } on DioException catch (d) {
+      // unwrap ApiException carried in DioException.error
+      final err = d.error;
+      if (err is ApiException) {
+        loading = false;
+        error = err.message;
+        notifyListeners();
+        return false;
+      }
+      loading = false;
+      error = d.message ?? d.toString();
+      notifyListeners();
+      return false;
     } catch (e) {
       loading = false;
       error = e.toString();

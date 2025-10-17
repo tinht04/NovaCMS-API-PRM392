@@ -4,6 +4,7 @@ import 'ui/screens/signup_screen.dart';
 import 'ui/screens/product_list_screen.dart';
 import 'ui/screens/product_detail_screen.dart';
 import 'ui/screens/payment_screen.dart';
+import 'ui/screens/cart_screen.dart';
 import 'ui/screens/map_screen.dart';
 import 'ui/screens/chat_screen.dart';
 import 'ui/widgets/root_page.dart';
@@ -24,6 +25,7 @@ class App extends StatelessWidget {
         '/products': (_) => const ProductListScreen(),
         '/product': (_) => const ProductDetailScreen(),
         '/payment': (_) => const PaymentScreen(),
+  '/cart': (_) => const CartScreen(),
         '/map': (_) => const MapScreen(),
         '/chat': (_) => const ChatScreen(),
       },

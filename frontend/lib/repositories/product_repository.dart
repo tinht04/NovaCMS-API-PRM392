@@ -7,7 +7,7 @@ class ProductRepository {
   ProductRepository({required this.apiClient});
 
   Future<List<Map<String, dynamic>>> fetchProducts({Map<String, dynamic>? query}) async {
-    final data = await apiClient.getData(Endpoints.equipments);
+    final data = await apiClient.getData(Endpoints.equipments, queryParameters: query);
     // Some API responses wrap payload inside { data: { items: [...] } }
     if (data is Map && data.containsKey('items')) {
       final items = data['items'];

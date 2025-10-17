@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Payment Callback</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 16px; }
+    pre { background:#f6f8fa; padding:12px; border-radius:6px; overflow:auto }
+    .ok { color: green; }
+    .fail { color: red; }
+    .center { text-align:center }
+    button { padding:8px 12px; margin-top:12px }
+  </style>
+</head>
+<body>
+  <h2>Payment callback received</h2>
+  <p id="status" class="center">Parsing callback parameters...</p>
+  <pre id="params"></pre>
+  <div class="center">
+    <button id="closeBtn">Close</button>
+  </div>
+
+  <script>
+    function parseQuery(qs) {
+      if (!qs) return {};
+      if (qs[0] === '?') qs = qs.substring(1);
+      var pairs = qs.split('&');
+      var obj = {};
+      pairs.forEach(function(p) {
+        if (!p) return;
+        var kv = p.split('=');
+        var k = decodeURIComponent(kv[0]||'');
+        var v = decodeURIComponent(kv[1]||'');
+        obj[k] = v;
+      });
+      return obj;
+    }
+
+    var params = parseQuery(location.search);
+    document.getElementById('params').textContent = JSON.stringify(params, null, 2);
+
+    var ok = false;
+    // VnPay commonly uses vnp_ResponseCode = "00" to mean success
+    if (params && params.vnp_ResponseCode === '00') {
+      ok = true;
+      document.getElementById('status').innerHTML = '<strong class="ok">Payment success</strong>';
+    } else {
+      document.getElementById('status').innerHTML = '<strong class="fail">Payment not successful</strong>';
+    }
+
+    // Post message to opener (if available)
+    try {
+      var payload = { type: 'vnp_callback', ok: ok, params: params };
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, '*');
+      }
+      // Also try to post to parent (in case opened in same tab/frame)
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(payload, '*');
+      }
+    } catch (e) {
+      console.error('postMessage failed', e);
+    }
+
+    // Close button
+    document.getElementById('closeBtn').addEventListener('click', function() {
+      try { window.close(); } catch(e) {}
+    });
+
+    // Auto-close after a short delay to return user to app (if opened as popup)
+    setTimeout(function() {
+      try { window.close(); } catch(e) {}
+    }, 2000);
+  </script>
+</body>
+</html>

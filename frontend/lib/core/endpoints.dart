@@ -39,6 +39,14 @@ class Endpoints {
   static const String userAvatar = '$base/User/avatar';
   static const String userProfile = '$base/User/profile';
   static const String userOffline = '$base/User/offline';
+
+
+  //reservation
+  static const String reservation = '$base/Reservation';
+
+  //cart 
+  static const String cart = '$base/Cart';
+  static const String cartAddItem = '$base/Cart/add';
 }
 
 // Helper to build query params could be added in repositories where needed.

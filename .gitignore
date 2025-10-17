@@ -137,3 +137,29 @@ app.*.map.json
 /android/app/release
 
 env.*
+
+# Additional build outputs and IDE artifacts (explicit)
+# .NET build folders (recursive)
+**/bin/
+**/obj/
+
+# Published output
+**/publish/
+
+# Rider
+/.idea/
+
+# Gradle/Android builds
+.gradle/
+**/build/
+**/*.apk
+**/*.aab
+
+# Flutter specific (project-level catch)
+/.flutter-plugins
+/.flutter-plugins-deps
+.packages
+
+# macOS Flutter
+ios/Pods/
+

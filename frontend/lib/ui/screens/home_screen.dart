@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../viewmodels/product_list_viewmodel.dart';
 import '../../repositories/product_repository.dart';
+import '../../repositories/category_repository.dart';
 import '../../core/network/api_client.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/product_card.dart';
@@ -17,7 +18,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final ProductListViewModel _vm;
   late final VoidCallback _vmListener;
-  
+  final _scrollController = ScrollController();
+  List<Map<String, dynamic>> _categories = [];
 
   @override
   void initState() {
@@ -26,11 +28,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _vmListener = () => setState(() {});
     _vm.addListener(_vmListener);
     _vm.load();
+    // load categories from API
+    CategoryRepository().getAll().then((c) => setState(() => _categories = c));
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels > _scrollController.position.maxScrollExtent - 300) {
+        _vm.loadMore();
+      }
+    });
   }
 
   @override
   void dispose() {
     _vm.removeListener(_vmListener);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -68,14 +78,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     'https://picsum.photos/900/300?random=3',
                   ]),
                   const SizedBox(height: 12),
-                  // Categories grid
+                  // Categories grid (from API)
                   SizedBox(
                     height: 92,
                     child: GridView.count(
                       crossAxisCount: 5,
                       childAspectRatio: 0.8,
                       physics: const NeverScrollableScrollPhysics(),
-                      children: List.generate(10, (i) => Column(mainAxisSize: MainAxisSize.min, children: [CircleAvatar(backgroundColor: Colors.blue.shade100, child: Icon(Icons.category, color: Colors.blue)), const SizedBox(height: 6), Text('Cat ${i + 1}', style: const TextStyle(fontSize: 12))])),
+                      children: _categories.isEmpty
+                          ? List.generate(5, (i) => Column(mainAxisSize: MainAxisSize.min, children: [CircleAvatar(backgroundColor: Colors.grey.shade200, child: Icon(Icons.category, color: Colors.grey)), const SizedBox(height: 6), Text('...', style: const TextStyle(fontSize: 12))]))
+                          : _categories.map((c) {
+                              final name = c['categoryName'] ?? c['category_name'] ?? 'Cat';
+                              final id = c['categoryId'] ?? c['id'];
+                              return GestureDetector(
+                                onTap: () => Navigator.pushNamed(context, '/products', arguments: {'CategoryId': id}),
+                                child: Column(mainAxisSize: MainAxisSize.min, children: [CircleAvatar(backgroundColor: Colors.blue.shade100, child: Icon(Icons.category, color: Colors.blue)), const SizedBox(height: 6), SizedBox(width: 56, child: Text('$name', style: const TextStyle(fontSize: 12), textAlign: TextAlign.center))]),
+                              );
+                            }).toList(),
                     ),
                   ),
                   const SizedBox(height: 12),
