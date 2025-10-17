@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:app_links/app_links.dart';
+import 'dart:async';
 
 // conditional import: web implementation uses dart:html, non-web uses stub
 import '../../core/web_message_stub.dart'
@@ -16,30 +18,43 @@ class CheckoutWebViewScreen extends StatefulWidget {
 }
 
 class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
   bool _loading = true;
   bool _externalLaunched = false;
+  StreamSubscription<Uri>? _linkSubscription;
+  final _appLinks = AppLinks();
 
   @override
   void initState() {
     super.initState();
-    // Register web message listener only on web
+    
     if (kIsWeb) {
+      // Web: use localStorage message listener
       _webCancel = addWebMessageListener((data) {
         try {
           if (data is Map && data['type'] == 'vnp_callback') {
             final ok = data['ok'] as bool? ?? false;
             final params = Map<String, dynamic>.from(data['params'] ?? {});
-            // Pop back to caller with a map result: { 'success': ok, 'params': params }
-            if (mounted) Navigator.of(context).pop({'success': ok, 'params': params});
+            if (mounted) {
+              Navigator.of(context).pop({'success': ok, 'params': params});
+            }
           }
-        } catch (_) {}
+        } catch (e) {
+          // Handle error silently
+        }
+      });
+    } else {
+      // Mobile: listen for deep links
+      _linkSubscription = _appLinks.uriLinkStream.listen((Uri uri) {
+        _handleDeepLink(uri.toString());
+      }, onError: (err) {
+        // Handle error silently
       });
     }
     // On Android/iOS use an embedded webview; on web/desktop fall back to launching external browser
     try {
       _controller = WebViewController()..setJavaScriptMode(JavaScriptMode.unrestricted);
-      _controller.setNavigationDelegate(NavigationDelegate(onPageStarted: (url) {
+      _controller!.setNavigationDelegate(NavigationDelegate(onPageStarted: (url) {
         setState(() => _loading = true);
         if (url.contains('/payment/true') || url.contains('/payment/false')) {
           final success = url.contains('/payment/true');
@@ -48,7 +63,12 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
       }, onPageFinished: (url) => setState(() => _loading = false), onNavigationRequest: (r) {
         return NavigationDecision.navigate;
       }));
-      _controller.loadRequest(Uri.parse(widget.paymentUrl));
+      _controller!.loadRequest(Uri.parse(widget.paymentUrl));
+      // If running on web we prefer opening the payment URL in a new tab so the vnp callback can postMessage back
+      if (kIsWeb) {
+        openInNewTab(widget.paymentUrl);
+        if (mounted) setState(() => _externalLaunched = true);
+      }
     } catch (_) {
       // fallback: open external browser
       _openExternal();
@@ -57,9 +77,30 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
 
   WebMessageCancel? _webCancel;
 
+  void _handleDeepLink(String link) {
+    // Parse deep link: novacms://payment/callback?vnp_ResponseCode=00&...
+    if (link.startsWith('novacms://payment/callback')) {
+      try {
+        final uri = Uri.parse(link);
+        final params = Map<String, dynamic>.from(uri.queryParameters);
+        final success = params['vnp_ResponseCode'] == '00';
+        
+        if (mounted) {
+          Navigator.of(context).pop({
+            'success': success,
+            'params': params,
+          });
+        }
+      } catch (e) {
+        // Handle error silently
+      }
+    }
+  }
+
   @override
   void dispose() {
     _webCancel?.call();
+    _linkSubscription?.cancel();
     super.dispose();
   }
 
@@ -77,7 +118,7 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Payment')),
       body: Stack(children: [
-        if (!_externalLaunched) WebViewWidget(controller: _controller),
+        if (!_externalLaunched && _controller != null) WebViewWidget(controller: _controller!),
         if (_externalLaunched)
           Center(
             child: Padding(
@@ -85,14 +126,15 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const Text('Payment opened in a new browser tab.'),
                 const SizedBox(height: 8),
-                const Text('Complete your payment in the browser, then come back and tap Done.'),
+                const Text('Complete your payment in the browser; the app will detect the result automatically when the payment finishes.'),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                    onPressed: () {
-                      // We can't reliably detect success here; return to caller to verify if needed
-                      Navigator.of(context).pop(true);
-                    },
-                    child: const Text('Done'))
+                if (!kIsWeb)
+                  ElevatedButton(
+                      onPressed: () {
+                        // We can't reliably detect success here; return to caller to verify if needed
+                        Navigator.of(context).pop(true);
+                      },
+                      child: const Text('Done'))
               ]),
             ),
           ),

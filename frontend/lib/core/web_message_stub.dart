@@ -7,3 +7,8 @@ WebMessageCancel addWebMessageListener(void Function(dynamic data) handler) {
   // No-op on non-web platforms.
   return () {};
 }
+
+/// No-op for opening a new tab on non-web platforms.
+void openInNewTab(String url) {
+  // noop
+}

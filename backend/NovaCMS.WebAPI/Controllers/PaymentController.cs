@@ -13,16 +13,19 @@ namespace NovaCMS.API.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class PaymentController : ControllerBase
+    public class PaymentController : ControllerBase
 	{
-		private readonly IVnPayService _vnPayService;
-		private readonly IOrderService _orderService;
-		private readonly IRedisService _redisService;
-        public PaymentController(IVnPayService vnPayService, IOrderService orderService, IRedisService redisService)
+        private readonly IVnPayService _vnPayService;
+        private readonly IOrderService _orderService;
+        private readonly IRedisService _redisService;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
+
+        public PaymentController(IVnPayService vnPayService, IOrderService orderService, IRedisService redisService, Microsoft.Extensions.Configuration.IConfiguration config)
         {
             _vnPayService = vnPayService;
             _orderService = orderService;
-			_redisService = redisService;
+            _redisService = redisService;
+            _config = config;
         }
 
         [HttpPost]
@@ -63,12 +66,30 @@ namespace NovaCMS.API.Controllers
                     return Redirect("http://localhost:5173/payment-error?code=INVALID_RESERVATION");
                 }
                await _orderService.CreateOrderFromReservationAsync(reservationId, response);
-                return Redirect($"http://localhost:5173/payment/{response.Success}");
-			}
-			catch (Exception ex)
-			{
-				return StatusCode(500, "An error occurred during payment callback.");
-			}
+                
+                var qs = Request?.QueryString.HasValue == true ? Request.QueryString.Value : string.Empty;
+                
+                // Check User-Agent to determine if it's mobile app or web browser
+                var userAgent = Request.Headers["User-Agent"].FirstOrDefault()?.ToLower() ?? "";
+                bool isMobile = userAgent.Contains("android") || userAgent.Contains("ios") || userAgent.Contains("mobile");
+                
+                if (isMobile)
+                {
+                    // For mobile app: redirect to deep link
+                    return Redirect($"novacms://payment/callback{qs}");
+                }
+                else
+                {
+                    // For web: redirect to HTML callback page
+                    var configured = _config.GetValue<string>("PaymentCallBack:ReturnUrl");
+                    var frontendCallback = !string.IsNullOrEmpty(configured) ? configured : "http://localhost:5173/payment_callback.html";
+                    return Redirect($"{frontendCallback}{qs}");
+                }
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred during payment callback.");
+            }
 		}
 
         private string? ParseReservationIdFromOrderInfo(string orderInfo)

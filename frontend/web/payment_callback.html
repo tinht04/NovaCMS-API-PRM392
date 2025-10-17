@@ -49,28 +49,46 @@
       document.getElementById('status').innerHTML = '<strong class="fail">Payment not successful</strong>';
     }
 
-    // Post message to opener (if available)
+    // Use LocalStorage to communicate between tabs
     try {
-      var payload = { type: 'vnp_callback', ok: ok, params: params };
+      var payload = { type: 'vnp_callback', ok: ok, params: params, timestamp: Date.now() };
+      
+      // Save to localStorage
+      localStorage.setItem('vnp_payment_result', JSON.stringify(payload));
+      
+      // Trigger storage event for other tabs
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'vnp_payment_result',
+        newValue: JSON.stringify(payload),
+        url: window.location.href
+      }));
+      
+      document.getElementById('status').innerHTML += '<br><small style="color:green">Returning to app...</small>';
+      
+      // Also try postMessage as fallback
       if (window.opener && !window.opener.closed) {
         window.opener.postMessage(payload, '*');
       }
-      // Also try to post to parent (in case opened in same tab/frame)
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage(payload, '*');
-      }
+      
     } catch (e) {
-      console.error('postMessage failed', e);
+      document.getElementById('status').innerHTML += '<br><small style="color:red">Please return to app manually.</small>';
     }
+
+
 
     // Close button
     document.getElementById('closeBtn').addEventListener('click', function() {
       try { window.close(); } catch(e) {}
     });
 
-    // Auto-close after a short delay to return user to app (if opened as popup)
+    // Auto-close after a short delay 
     setTimeout(function() {
-      try { window.close(); } catch(e) {}
+      try { 
+        window.close(); 
+      } catch(e) {
+        // Add instruction for user
+        document.getElementById('status').innerHTML += '<br><br><strong>You can close this tab and return to the app.</strong>';
+      }
     }, 2000);
   </script>
 </body>

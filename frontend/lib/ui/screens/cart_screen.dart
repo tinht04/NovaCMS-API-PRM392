@@ -4,6 +4,7 @@ import '../../repositories/payment_repository.dart';
 import '../../repositories/reservation_repository.dart';
 import '../../repositories/profile_repository.dart';
 import 'checkout_webview_screen.dart';
+import 'payment_result_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -82,31 +83,28 @@ class _CartScreenState extends State<CartScreen> {
       // - previously we returned bool (true on success)
       // - for web listener we return a Map { 'success': bool, 'params': {...} }
       var success = false;
-      Map<String, dynamic>? callbackParams;
       if (res is bool) {
         success = res;
       } else if (res is Map) {
         try {
           success = res['success'] == true;
-          callbackParams = Map<String, dynamic>.from(res['params'] ?? {});
         } catch (_) {}
       }
 
       if (success) {
-        // assume success: clear cart
+        // Clear cart on successful payment
         _cart.clear();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment completed')));
-        // Optionally show callback details in a dialog if available
-        if (callbackParams != null && callbackParams.isNotEmpty) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Payment details'),
-              content: SingleChildScrollView(child: Text(callbackParams.toString())),
-              actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
-            ),
-          );
-        }
+        // Navigate to payment result screen
+        if (!mounted) return;
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PaymentResultScreen(success: true)
+        ));
+      } else {
+        // Show failure result
+        if (!mounted) return;
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => PaymentResultScreen(success: false)
+        ));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checkout failed: $e')));
