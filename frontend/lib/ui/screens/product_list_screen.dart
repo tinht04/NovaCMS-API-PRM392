@@ -132,7 +132,7 @@ class _FilterDialogState extends State<_FilterDialog> {
           SwitchListTile(title: const Text('Is Available'), value: _isAvailable, onChanged: (v) => setState(() => _isAvailable = v)),
           TextField(controller: _minRating, decoration: const InputDecoration(labelText: 'MinRating')),
           DropdownButtonFormField<String>(
-            value: _sortBy,
+            initialValue: _sortBy,
             items: const [
               DropdownMenuItem(value: 'price_asc', child: Text('Price: low → high')),
               DropdownMenuItem(value: 'price_desc', child: Text('Price: high → low')),

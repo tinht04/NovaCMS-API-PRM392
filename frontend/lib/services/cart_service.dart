@@ -45,7 +45,7 @@ class CartService extends ChangeNotifier {
             if (pd != null) {
               enriched['name'] = pd['name'] ?? pd['title'] ?? enriched['name'];
               enriched['pricePerDay'] = pd['pricePerDay'] ?? pd['price'] ?? enriched['pricePerDay'];
-              enriched['image'] = (pd['imageResponses'] is List && (pd['imageResponses'] as List).isNotEmpty) ? (pd['imageResponses'][0]['imageUrl'] ?? null) : enriched['image'];
+              enriched['image'] = (pd['imageResponses'] is List && (pd['imageResponses'] as List).isNotEmpty) ? (pd['imageResponses'][0]['imageUrl']) : enriched['image'];
             }
             _items.add(enriched);
           }
