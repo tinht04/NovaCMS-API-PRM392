@@ -21,10 +21,9 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   void initState() {
-    super.initState();
-    _cart.addListener(_onCartChanged);
-    // load cart from server to populate items with server state (including rental dates)
-    _cart.loadFromServer();
+  super.initState();
+  _cart.addListener(_onCartChanged);
+  // Không gọi loadFromServer ở đây để tránh clear data khi chuyển màn hình
   }
 
   @override

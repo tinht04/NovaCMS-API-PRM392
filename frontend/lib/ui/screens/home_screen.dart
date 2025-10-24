@@ -74,7 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifications');
+            },
             icon: Stack(
               children: [
                 const Icon(Icons.notifications_outlined, size: 28),
