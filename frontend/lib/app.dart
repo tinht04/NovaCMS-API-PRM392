@@ -8,6 +8,9 @@ import 'ui/screens/cart_screen.dart';
 import 'ui/screens/map_screen.dart';
 import 'ui/screens/chat_screen.dart';
 import 'ui/widgets/root_page.dart';
+import 'core/navigation.dart';
+import 'ui/screens/notification_screen.dart';
+import 'ui/screens/store_map_screen.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -93,7 +96,8 @@ class App extends StatelessWidget {
         useMaterial3: true,
       ),
       // RootPage decides whether to show Login or Main scaffold depending on auth state
-      home: const RootPage(),
+  navigatorKey: navigatorKey,
+  home: const RootPage(),
       routes: {
         '/login': (_) => const LoginScreen(),
         '/signup': (_) => const SignupScreen(),
@@ -102,7 +106,9 @@ class App extends StatelessWidget {
         '/payment': (_) => const PaymentScreen(),
         '/cart': (_) => const CartScreen(),
         '/map': (_) => const MapScreen(),
+        '/store-map': (_) => const StoreMapScreen(),
         '/chat': (_) => const ChatScreen(),
+        '/notifications': (_) => const NotificationScreen(),
       },
     );
   }
