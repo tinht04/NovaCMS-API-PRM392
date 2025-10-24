@@ -74,7 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifications');
+            },
             icon: Stack(
               children: [
                 const Icon(Icons.notifications_outlined, size: 28),
@@ -396,6 +398,151 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // --- Widget xây dựng nội dung cho AppBar ---
+  Widget _buildAppBarContent(BuildContext context, Color primaryBlue, Color darkBlue) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primaryBlue, darkBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Title Row
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Image.asset('assets/icons/camera3.png', height: 28, color: Colors.white),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Nova Camera',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 22),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/notifications');
+                    },
+                    icon: Stack(
+                      children: [
+                        const Icon(Icons.notifications_outlined, size: 28, color: Colors.white),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                              border: Border.fromBorderSide(BorderSide(color: Colors.white, width: 1.5)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _buildSearchBar(context, isTitle: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Widget xây dựng thanh tìm kiếm có thể tái sử dụng ---
+  Widget _buildSearchBar(BuildContext context, {required bool isTitle}) {
+
+    final container = Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: isTitle ? Colors.transparent : Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: isTitle ? null : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: isTitle ? null : Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 12),
+            child: Icon(Icons.search, color: Colors.grey.shade600),
+          ),
+          Expanded(
+            child: Text(
+              'Search for camera equipment...',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 15,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/products'),
+
+      child: isTitle ? AbsorbPointer(child: container) : container,
+    );
+  }
+
+  // Widget skeleton cho category khi đang loading
+  Widget _buildCategorySkeleton() {
+    return Container(
+      width: 80,
+      margin: const EdgeInsets.only(right: 12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            height: 8,
+            width: 50,
+            decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(4)
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            height: 8,
+            width: 35,
+            decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(4)
+            ),
+          ),
+        ],
       ),
     );
   }

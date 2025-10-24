@@ -38,6 +38,9 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   google_maps_flutter: ^2.4.7
   url_launcher: ^6.1.7
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  overlay_support: ^2.0.1
   webview_flutter: ^4.0.7
   app_links: ^6.1.4
 

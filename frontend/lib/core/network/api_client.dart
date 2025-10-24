@@ -3,6 +3,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../env.dart';
 import 'response_wrapper.dart';
 import 'exceptions.dart';
+import '../../services/cart_service.dart';
+import '../../services/notification_service.dart';
+import '../navigation.dart';
 
 final _secureStorage = const FlutterSecureStorage();
 
@@ -32,14 +35,31 @@ class ApiClient {
       try {
         final status = e.response?.statusCode;
         final data = e.response?.data;
+
+        // If unauthorized, perform global logout/cleanup and navigate to login
+        if (status == 401) {
+          try {
+            await _secureStorage.delete(key: 'access_token');
+            await _secureStorage.delete(key: 'FlutterSecureStorage.access_token');
+            await _secureStorage.delete(key: 'refresh_token');
+          } catch (_) {}
+          try {
+            CartService.instance.clear();
+          } catch (_) {}
+          try {
+            NotificationService.instance.clear();
+          } catch (_) {}
+          // Navigate to login screen (remove all routes)
+          gotoLogin();
+
+          final apiEx = ApiException('Unauthorized', statusCode: 401);
+          return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
+        }
+
         if (data is Map<String, dynamic>) {
           // Use the same wrapper to extract message/errors if present
           final wrapper = ApiResponseWrapper.fromMap(Map<String, dynamic>.from(data));
           final apiEx = ApiException(wrapper.message.isNotEmpty ? wrapper.message : 'API error', statusCode: wrapper.statusCode, errors: wrapper.errors);
-          return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
-        }
-        if (status == 401) {
-          final apiEx = ApiException('Unauthorized', statusCode: 401);
           return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
         }
       } catch (_) {

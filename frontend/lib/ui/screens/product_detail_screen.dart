@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:overlay_support/overlay_support.dart';
 import '../../repositories/product_repository.dart';
 import '../../core/network/api_client.dart';
 import '../../services/cart_service.dart';
+import '../../services/notification_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key});
@@ -816,24 +818,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             start.toUtc().toIso8601String();
                         cartItem['rentalEndDate'] =
                             end.toUtc().toIso8601String();
+
+
                         CartService.instance.addItem(cartItem);
+                        final productName = _item?['name'] ?? _item?['equipmentName'] ?? 'Sản phẩm';
+                        NotificationService.instance.add(
+                          'Đã thêm "$productName" vào giỏ hàng!',
+                          onTap: () {
+                            if (context.mounted) {
+                              Navigator.of(context).pushNamed('/cart');
+                            }
+                          },
+                        );
 
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
+                        showSimpleNotification(
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pushNamed('/cart');
+                            },
+                            child: Row(
+                              children: const [
                                 Icon(Icons.check_circle, color: Colors.white),
                                 SizedBox(width: 8),
-                                Text('Added to cart successfully!'),
+                                Text('Added to cart successfully! Tap to view cart.'),
                               ],
                             ),
-                            backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
                           ),
+                          background: Colors.green,
+                          autoDismiss: true,
+                          slideDismiss: true,
+                          position: NotificationPosition.top,
                         );
                       },
               style: ElevatedButton.styleFrom(

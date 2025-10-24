@@ -6,6 +6,7 @@ import '../screens/cart_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/store_map_screen.dart';
 
 /// RootPage: checks auth on startup and shows MainScaffold (bottom nav) when logged in,
 /// otherwise navigates to LoginScreen (using named route). For simplicity this widget
@@ -55,12 +56,13 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _index = 0;
-  static const _pages = [
-    HomeScreen(),
-    ProductListScreen(),
-    CartScreen(),
-    ChatScreen(),
-    ProfileScreen(),
+  static final List<Widget> _pages = [
+    const HomeScreen(),
+    const ProductListScreen(),
+    const CartScreen(),
+    StoreMapScreen(),
+    const ChatScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -75,6 +77,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'Categories'),
           BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Cart'),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
