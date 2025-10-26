@@ -8,10 +8,11 @@ namespace NovaCMS.Application.DTOs.Reservation.Response
 {
     public class ReservationResponse
     {
-        public string ReservationId { get; set; }
-        public DateTime ExpiresAt { get; set; }
-        public List<int> ReservedItemIds { get; set; } = new();
-        public bool IsSuccess { get; set; }
-        public string Message { get; set; }
+    public string? ReservationId { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public List<int> ReservedItemIds { get; set; } = new();
+    public bool IsSuccess { get; set; }
+    public string? Message { get; set; }
+    public decimal Amount { get; set; } // Tổng tiền thực tế phải thanh toán
     }
 }

@@ -69,7 +69,12 @@ class _CartScreenState extends State<CartScreen> {
       if (reservationResp.isEmpty || reservationResp['reservationId'] == null) {
         throw Exception('Reservation failed');
       }
-      final reservationId = reservationResp['reservationId'];
+  final reservationId = reservationResp['reservationId'];
+
+  // Lấy amount thực tế từ reservationResp nếu có, nếu không fallback về amount FE tính
+  final backendAmount = reservationResp['amount'] ?? reservationResp['totalAmount'] ?? reservationResp['total'] ?? amount;
+  // Debug log
+  debugPrint('[CHECKOUT] reservationResp[amount]=${reservationResp['amount']}, backendAmount=$backendAmount');
 
       // Try to get logged-in user's name
       String payerName = 'Guest';
@@ -80,9 +85,10 @@ class _CartScreenState extends State<CartScreen> {
         }
       } catch (_) {}
 
-      // Call payment API with reservationId
-      final paymentPayload = {'reservationId': reservationId, 'amount': amount};
-      final url = await paymentRepo.createPaymentUrl(paymentPayload);
+  // Call payment API with reservationId và amount lấy từ backend
+  final paymentPayload = {'reservationId': reservationId, 'amount': backendAmount};
+  debugPrint('[CHECKOUT] paymentPayload: $paymentPayload');
+  final url = await paymentRepo.createPaymentUrl(paymentPayload);
       if (!mounted) return;
       // open WebView for payment and wait result
       final res = await Navigator.push<dynamic>(context, MaterialPageRoute(builder: (_) => CheckoutWebViewScreen(paymentUrl: url)));

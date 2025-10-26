@@ -54,16 +54,30 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
     // On Android/iOS use an embedded webview; on web/desktop fall back to launching external browser
     try {
       _controller = WebViewController()..setJavaScriptMode(JavaScriptMode.unrestricted);
-      _controller!.setNavigationDelegate(NavigationDelegate(onPageStarted: (url) {
-        setState(() => _loading = true);
-        if (url.contains('/payment/true') || url.contains('/payment/false')) {
-          final success = url.contains('/payment/true');
-          Navigator.of(context).pop(success);
-        }
-      }, onPageFinished: (url) => setState(() => _loading = false), onNavigationRequest: (r) {
-        return NavigationDecision.navigate;
-      }));
-      _controller!.loadRequest(Uri.parse(widget.paymentUrl));
+      _controller!.setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (url) {
+          setState(() => _loading = true);
+          if (url.contains('/payment/true') || url.contains('/payment/false')) {
+            final success = url.contains('/payment/true');
+            Navigator.of(context).pop(success);
+          }
+        },
+        onPageFinished: (url) => setState(() => _loading = false),
+        onNavigationRequest: (r) {
+          // Chặn các URL có scheme không phải http/https (deep link)
+          final uri = Uri.tryParse(r.url);
+          if (uri != null && uri.scheme != 'http' && uri.scheme != 'https') {
+            // Nếu là deep link callback, pop về app
+            _handleDeepLink(r.url);
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
+      ));
+      _controller!.loadRequest(
+        Uri.parse(widget.paymentUrl),
+        headers: {'ngrok-skip-browser-warning': 'true'},
+      );
       // If running on web we prefer opening the payment URL in a new tab so the vnp callback can postMessage back
       if (kIsWeb) {
         openInNewTab(widget.paymentUrl);

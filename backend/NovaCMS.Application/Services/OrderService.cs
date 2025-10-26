@@ -80,23 +80,13 @@ namespace NovaCMS.Application.Services
                 throw new InvalidOperationException("Request held product is invalid or expire");
             }
 
-            decimal expectedAmount = 0;
-            foreach (var itemRequest in details.OriginalRequestItems)
-            {
-                var equipment = await _unitOfWork.Equipments.GetByIdAsync(itemRequest.EquipmentId);
-                var rentalDays = (itemRequest.RentalEndDate - itemRequest.RentalStartDate).Days > 0 ? (itemRequest.RentalEndDate - itemRequest.RentalStartDate).Days : 1;
-
-                decimal rentalFee = equipment.PricePerDay * rentalDays * itemRequest.Quantity;
-
-                decimal depositFee = (equipment.DepositFee ?? 0) * itemRequest.Quantity;
-
-                // 4. Cộng dồn vào tổng tiền thanh toán dự kiến
-                expectedAmount += rentalFee + depositFee;
-            }
+            // Sử dụng Amount đã lưu lúc reservation, không tính lại từ DB
+            decimal expectedAmount = details.Amount;
 
             if (paymentDetails.Amount != expectedAmount)
             {
-                throw new InvalidOperationException("Paid is invalid");
+                Console.WriteLine($"[VNPAY] Paid amount from VNPAY: {paymentDetails.Amount}, expected: {expectedAmount}");
+                throw new InvalidOperationException($"Paid is invalid: VNPAY={paymentDetails.Amount}, expected={expectedAmount}");
             }
 
             return details;

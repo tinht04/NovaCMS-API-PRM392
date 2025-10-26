@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StoreMapScreen extends StatelessWidget {
@@ -25,28 +24,21 @@ class StoreMapScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: FlutterMap(
-              options: MapOptions(
-                center: storeLatLng,
+            child: GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                target: storeLatLng,
                 zoom: 16,
               ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
-                  userAgentPackageName: 'com.example.app',
+              markers: {
+                const Marker(
+                  markerId: MarkerId('store'),
+                  position: storeLatLng,
+                  infoWindow: InfoWindow(title: 'Store'),
                 ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      width: 40,
-                      height: 40,
-                      point: storeLatLng,
-                      child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                    ),
-                  ],
-                ),
-              ],
+              },
+              myLocationEnabled: false,
+              zoomControlsEnabled: true,
+              mapType: MapType.normal,
             ),
           ),
           Padding(

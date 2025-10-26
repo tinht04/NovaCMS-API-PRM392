@@ -106,7 +106,7 @@ builder.Services.AddSwaggerGen(opt =>
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://localhost:8080") // Allow the frontend's origin EXE project. Please change it!!!
+        policy.WithOrigins("http://10.0.2.2:5162") // Đúng port backend cho Android emulator
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials()); // If you're using credentials (cookies, Authorization headers, etc.)
@@ -178,7 +178,7 @@ app.UseSwagger();
     app.UseSwaggerUI();
 //}
 
-app.UseHttpsRedirection();
+ //app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -57,38 +57,25 @@ namespace NovaCMS.API.Controllers
 		[HttpGet("callback")]
 		public async Task<IActionResult> PaymentCallback()
 		{
-			try
-			{
-				var response = _vnPayService.PaymentExecute(Request.Query);
+            try
+            {
+                var response = _vnPayService.PaymentExecute(Request.Query);
                 var reservationId = ParseReservationIdFromOrderInfo(response.OrderDescription);
                 if (string.IsNullOrEmpty(reservationId))
                 {
-                    return Redirect("http://localhost:8080/payment-error?code=INVALID_RESERVATION");
+                    return Redirect("novacms://payment/error?code=INVALID_RESERVATION");
                 }
-               await _orderService.CreateOrderFromReservationAsync(reservationId, response);
-                
+                await _orderService.CreateOrderFromReservationAsync(reservationId, response);
+
                 var qs = Request?.QueryString.HasValue == true ? Request.QueryString.Value : string.Empty;
-                
-                // Check User-Agent to determine if it's mobile app or web browser
-                var userAgent = Request.Headers["User-Agent"].FirstOrDefault()?.ToLower() ?? "";
-                bool isMobile = userAgent.Contains("android") || userAgent.Contains("ios") || userAgent.Contains("mobile");
-                
-                if (isMobile)
-                {
-                    // For mobile app: redirect to deep link
-                    return Redirect($"novacms://payment/callback{qs}");
-                }
-                else
-                {
-                    // For web: redirect to HTML callback page
-                    var configured = _config.GetValue<string>("PaymentCallBack:ReturnUrl");
-                    var frontendCallback = !string.IsNullOrEmpty(configured) ? configured : "http://localhost:8080/payment_callback.html";
-                    return Redirect($"{frontendCallback}{qs}");
-                }
+                // Luôn redirect về deep link cho mobile app
+                return Redirect($"novacms://payment/callback{qs}");
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "An error occurred during payment callback.");
+                // Log lỗi chi tiết ra console để dễ debug
+                Console.WriteLine($"[PaymentCallback ERROR] {ex.Message}\n{ex.StackTrace}");
+                return StatusCode(500, $"An error occurred during payment callback: {ex.Message}");
             }
 		}
 
