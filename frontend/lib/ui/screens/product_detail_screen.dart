@@ -410,13 +410,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       decoration: BoxDecoration(
                         color:
-                            available && stock > 0
+                             stock > 0
                                 ? Colors.green.shade50
                                 : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color:
-                              available && stock > 0
+                               stock > 0
                                   ? Colors.green.shade200
                                   : Colors.red.shade200,
                         ),
@@ -425,23 +425,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            available && stock > 0
+                             stock > 0
                                 ? Icons.check_circle
                                 : Icons.cancel,
                             size: 16,
                             color:
-                                available && stock > 0
+                                 stock > 0
                                     ? Colors.green.shade700
                                     : Colors.red.shade700,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            available && stock > 0
+                            stock > 0
                                 ? 'Available ($stock in stock)'
                                 : 'Out of Stock',
                             style: TextStyle(
                               color:
-                                  available && stock > 0
+                                  stock > 0
                                       ? Colors.green.shade700
                                       : Colors.red.shade700,
                               fontWeight: FontWeight.w600,

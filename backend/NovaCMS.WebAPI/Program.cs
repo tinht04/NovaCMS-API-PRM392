@@ -106,7 +106,7 @@ builder.Services.AddSwaggerGen(opt =>
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://localhost:5173") // Allow the frontend's origin EXE project. Please change it!!!
+        policy.WithOrigins("http://localhost:8080") // Allow the frontend's origin EXE project. Please change it!!!
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials()); // If you're using credentials (cookies, Authorization headers, etc.)

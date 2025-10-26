@@ -63,7 +63,7 @@ namespace NovaCMS.API.Controllers
                 var reservationId = ParseReservationIdFromOrderInfo(response.OrderDescription);
                 if (string.IsNullOrEmpty(reservationId))
                 {
-                    return Redirect("http://localhost:5173/payment-error?code=INVALID_RESERVATION");
+                    return Redirect("http://localhost:8080/payment-error?code=INVALID_RESERVATION");
                 }
                await _orderService.CreateOrderFromReservationAsync(reservationId, response);
                 
@@ -82,7 +82,7 @@ namespace NovaCMS.API.Controllers
                 {
                     // For web: redirect to HTML callback page
                     var configured = _config.GetValue<string>("PaymentCallBack:ReturnUrl");
-                    var frontendCallback = !string.IsNullOrEmpty(configured) ? configured : "http://localhost:5173/payment_callback.html";
+                    var frontendCallback = !string.IsNullOrEmpty(configured) ? configured : "http://localhost:8080/payment_callback.html";
                     return Redirect($"{frontendCallback}{qs}");
                 }
             }
