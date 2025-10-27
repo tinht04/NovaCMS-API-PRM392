@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../repositories/auth_repository.dart';
 import '../../viewmodels/login_viewmodel.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -24,7 +23,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _vm = widget.viewModel ?? LoginViewModel(AuthRepository());
+  // Do not instantiate repositories from the UI layer. If a
+  // LoginViewModel isn't provided, create one using its default
+  // constructor which handles repository creation. This keeps the
+  // screen free of repository dependencies and respects MVVM.
+  _vm = widget.viewModel ?? LoginViewModel();
     _vmListener = () => setState(() {});
     _vm.addListener(_vmListener);
   }

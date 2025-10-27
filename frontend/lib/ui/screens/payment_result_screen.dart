@@ -21,7 +21,7 @@ class PaymentResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              success ? 'Thanh toán thành công!' : 'Thanh toán không thành công', 
+              success ? 'Payment Successful!' : 'Payment Failed', 
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: success ? Colors.green : Colors.red,
                 fontWeight: FontWeight.bold,
@@ -31,8 +31,8 @@ class PaymentResultScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               success 
-                ? 'Đơn hàng của bạn đã được xử lý thành công.'
-                : 'Vui lòng thử lại hoặc liên hệ hỗ trợ.',
+                ? 'Your order has been processed successfully.'
+                : 'Please try again or contact support.',
               style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
@@ -44,7 +44,7 @@ class PaymentResultScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Đóng', style: TextStyle(fontSize: 16)),
+                child: const Text('Close', style: TextStyle(fontSize: 16)),
               ),
             ),
           ],

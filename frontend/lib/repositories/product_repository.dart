@@ -4,7 +4,10 @@ import '../core/endpoints.dart';
 class ProductRepository {
   final ApiClient apiClient;
 
-  ProductRepository({required this.apiClient});
+  // Allow callers to omit ApiClient so higher-level code (UI/ViewModel)
+  // doesn't need to construct networking primitives. Tests and DI can
+  // still pass an ApiClient explicitly.
+  ProductRepository({ApiClient? apiClient}) : apiClient = apiClient ?? ApiClient();
 
   Future<List<Map<String, dynamic>>> fetchProducts({Map<String, dynamic>? query}) async {
     final data = await apiClient.getData(Endpoints.equipments, queryParameters: query);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:nova_mobile/viewmodels/payment_view_model.dart';
+import 'package:nova_mobile/viewmodels/payment_viewmodel.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});

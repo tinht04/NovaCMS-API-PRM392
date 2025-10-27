@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/cart_service.dart';
-import '../../repositories/payment_repository.dart';
-import '../../repositories/reservation_repository.dart';
-import '../../repositories/profile_repository.dart';
+import '../../viewmodels/cart_viewmodel.dart';
+// repositories moved into CartViewModel; screen should not call them directly
 import 'checkout_webview_screen.dart';
 import 'payment_result_screen.dart';
 
@@ -14,25 +12,22 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  final _cart = CartService.instance;
+  final _vm = CartViewModel();
   // rental dates are provided per-item when adding to cart
   // Lưu trạng thái chọn của từng item (theo index)
   Set<int> _selectedIndexes = <int>{};
 
   @override
   void initState() {
-  super.initState();
-  _cart.addListener(_onCartChanged);
-  // Không gọi loadFromServer ở đây để tránh clear data khi chuyển màn hình
+    super.initState();
+    // CartViewModel listens to the CartService singleton and will notify UI.
   }
 
   @override
   void dispose() {
-    _cart.removeListener(_onCartChanged);
+    _vm.dispose();
     super.dispose();
   }
-
-  void _onCartChanged() => setState(() {});
 
   Future<void> _checkout() async {
     if (_selectedIndexes.isEmpty) {
@@ -40,7 +35,7 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
     // Lấy các item được chọn
-    final selectedItems = [for (final i in _selectedIndexes) _cart.items[i]];
+  final selectedItems = [for (final i in _selectedIndexes) _vm.items[i]];
     // Ensure each selected item contains rentalStartDate and rentalEndDate
     for (final it in selectedItems) {
       if (it['rentalStartDate'] == null || it['rentalEndDate'] == null) {
@@ -49,46 +44,11 @@ class _CartScreenState extends State<CartScreen> {
       }
     }
 
-    // Build reservation payload from selected items
-    final itemsPayload = selectedItems.map((it) => {
-      'equipmentId': it['equipmentId'] ?? it['id'],
-      'quantity': it['quantity'] ?? 1,
-      'rentalStartDate': it['rentalStartDate'],
-      'rentalEndDate': it['rentalEndDate'],
-    }).toList();
-
-    final reservationRepo = ReservationRepository();
-    final paymentRepo = PaymentRepository();
-  // Tính tổng tiền các item được chọn
-  final amount = selectedItems.fold<double>(0, (sum, it) => sum + ((it['pricePerDay'] ?? it['price'] ?? 0) * (it['quantity'] ?? 1)));
+    // The reservation and payment orchestration is handled in the ViewModel.
 
     try {
-      // Create reservation first
-      final resPayload = {'items': itemsPayload};
-      final reservationResp = await reservationRepo.createReservation(resPayload);
-      if (reservationResp.isEmpty || reservationResp['reservationId'] == null) {
-        throw Exception('Reservation failed');
-      }
-  final reservationId = reservationResp['reservationId'];
-
-  // Lấy amount thực tế từ reservationResp nếu có, nếu không fallback về amount FE tính
-  final backendAmount = reservationResp['amount'] ?? reservationResp['totalAmount'] ?? reservationResp['total'] ?? amount;
-  // Debug log
-  debugPrint('[CHECKOUT] reservationResp[amount]=${reservationResp['amount']}, backendAmount=$backendAmount');
-
-      // Try to get logged-in user's name
-      String payerName = 'Guest';
-      try {
-        final profile = await ProfileRepository().getProfile();
-        if (profile.isNotEmpty) {
-          payerName = profile['fullName'] ?? profile['full_name'] ?? profile['name'] ?? payerName;
-        }
-      } catch (_) {}
-
-  // Call payment API with reservationId và amount lấy từ backend
-  final paymentPayload = {'reservationId': reservationId, 'amount': backendAmount};
-  debugPrint('[CHECKOUT] paymentPayload: $paymentPayload');
-  final url = await paymentRepo.createPaymentUrl(paymentPayload);
+      // Delegate reservation + payment URL creation to the ViewModel
+      final url = await _vm.createPaymentUrlForSelectedIndexes(_selectedIndexes);
       if (!mounted) return;
       // open WebView for payment and wait result
       final res = await Navigator.push<dynamic>(context, MaterialPageRoute(builder: (_) => CheckoutWebViewScreen(paymentUrl: url)));
@@ -105,8 +65,8 @@ class _CartScreenState extends State<CartScreen> {
       }
 
       if (success) {
-        // Clear cart on successful payment
-        _cart.clear();
+  // Clear cart on successful payment
+  _vm.clear();
         // Navigate to payment result screen
         if (!mounted) return;
         Navigator.of(context).push(MaterialPageRoute(
@@ -126,57 +86,62 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-  final items = _cart.items;
-  // _selectedIndexes luôn được khởi tạo, không cần kiểm tra null
-    return Scaffold(
-      appBar: AppBar(title: const Text('Cart')),
-      body: items.isEmpty
-          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const Text('Your cart is empty')]))
-          : ListView.builder(
-              itemCount: items.length + 1,
-              itemBuilder: (context, index) {
-                if (index == items.length) {
-                  // Tính tổng tiền các item được chọn
-                  final selectedItems = [for (final i in _selectedIndexes) if (i < items.length) items[i]];
-                  final selectedTotal = selectedItems.fold<double>(0, (sum, it) => sum + ((it['pricePerDay'] ?? it['price'] ?? 0) * (it['quantity'] ?? 1)));
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Text('Selected total: ₫${selectedTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        ElevatedButton(onPressed: _checkout, child: const Text('Checkout')),
-                    ]),
-                  );
-                }
-                final it = items[index];
-                final title = it['name'] ?? it['title'] ?? 'Item';
-                final price = it['pricePerDay'] ?? it['price'] ?? 0;
-                final qty = it['quantity'] ?? 1;
-                final selected = _selectedIndexes.contains(index);
-                return ListTile(
-                  leading: Checkbox(
-                    value: selected,
-                    onChanged: (v) {
-                      setState(() {
-                        if (v == true) {
-                          _selectedIndexes.add(index);
-                        } else {
+    // _selectedIndexes luôn được khởi tạo, không cần kiểm tra null
+    return AnimatedBuilder(
+      animation: _vm,
+      builder: (context, _) {
+        final items = _vm.items;
+        return Scaffold(
+          appBar: AppBar(title: const Text('Cart')),
+          body: items.isEmpty
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const Text('Your cart is empty')] ))
+              : ListView.builder(
+                  itemCount: items.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == items.length) {
+                      // Tính tổng tiền các item được chọn
+                      final selectedItems = [for (final i in _selectedIndexes) if (i < items.length) items[i]];
+                      final selectedTotal = selectedItems.fold<double>(0, (sum, it) => sum + ((it['pricePerDay'] ?? it['price'] ?? 0) * (it['quantity'] ?? 1)));
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                            Text('Selected total: ₫${selectedTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            ElevatedButton(onPressed: _checkout, child: const Text('Checkout')),
+                        ]),
+                      );
+                    }
+                    final it = items[index];
+                    final title = it['name'] ?? it['title'] ?? 'Item';
+                    final price = it['pricePerDay'] ?? it['price'] ?? 0;
+                    final qty = it['quantity'] ?? 1;
+                    final selected = _selectedIndexes.contains(index);
+                    return ListTile(
+                      leading: Checkbox(
+                        value: selected,
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedIndexes.add(index);
+                            } else {
+                              _selectedIndexes.remove(index);
+                            }
+                          });
+                        },
+                      ),
+                      title: Text(title),
+                      subtitle: Text('₫${price.toString()} x $qty'),
+                      trailing: IconButton(icon: const Icon(Icons.delete), onPressed: () {
+                        setState(() {
+                          _vm.removeAt(index);
                           _selectedIndexes.remove(index);
-                        }
-                      });
-                    },
-                  ),
-                  title: Text(title),
-                  subtitle: Text('₫${price.toString()} x $qty'),
-                  trailing: IconButton(icon: const Icon(Icons.delete), onPressed: () {
-                    setState(() {
-                      _cart.removeAt(index);
-                      _selectedIndexes.remove(index);
-                    });
-                  }),
-                );
-              },
-            ),
+                        });
+                      }),
+                    );
+                  },
+                ),
+        );
+      }
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../repositories/profile_repository.dart';
+import '../../viewmodels/profile_viewmodel.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,53 +9,39 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _repo = ProfileRepository();
-  bool _loading = true;
-  String? _error;
-  Map<String, dynamic>? _profile;
+  final _vm = ProfileViewModel();
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _vm.loadProfile();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _repo.getProfile();
-      setState(() {
-        _profile = data;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      setState(() => _loading = false);
-    }
+  @override
+  void dispose() {
+    _vm.dispose();
+    super.dispose();
   }
 
   Future<void> _logout() async {
-    final storage = const FlutterSecureStorage();
-    await storage.delete(key: 'access_token');
+    await _vm.logout();
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_error != null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
-        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Error: $_error'), const SizedBox(height: 8), ElevatedButton(onPressed: _load, child: const Text('Retry'))])),
-      );
-    }
-    final data = _profile ?? {};
+    return AnimatedBuilder(
+      animation: _vm,
+      builder: (context, _) {
+        if (_vm.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (_vm.error != null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Profile')),
+            body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('Error: ${_vm.error}'), const SizedBox(height: 8), ElevatedButton(onPressed: _vm.loadProfile, child: const Text('Retry'))])),
+          );
+        }
+        final data = _vm.profile ?? {};
     final name = data['fullName'] ?? data['name'] ?? 'No name';
     final email = data['email'] ?? '';
     final avatar = data['avatarUrl'];
@@ -82,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String fmtDate(dynamic v) {
       try {
         final dt = DateTime.parse(v.toString()).toLocal();
-        return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}";
       } catch (_) {
         return v?.toString() ?? '';
       }
@@ -126,12 +111,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ListTile(leading: const Icon(Icons.calendar_today), title: const Text('Member since'), subtitle: Text(fmtDate(createdAt ?? ''))),
           const SizedBox(height: 12),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            ElevatedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+            ElevatedButton.icon(onPressed: _vm.loadProfile, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
             const SizedBox(width: 12),
             OutlinedButton.icon(onPressed: _logout, icon: const Icon(Icons.logout), label: const Text('Logout')),
           ])
         ]),
       ),
+    );
+      },
     );
   }
 }

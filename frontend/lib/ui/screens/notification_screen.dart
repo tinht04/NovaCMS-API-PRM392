@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
-import '../../services/notification_service.dart';
+import '../../viewmodels/notification_viewmodel.dart';
 
-class NotificationScreen extends StatelessWidget {
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  final NotificationViewModel _vm = NotificationViewModel();
+
+  @override
+  void dispose() {
+    _vm.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,9 +24,9 @@ class NotificationScreen extends StatelessWidget {
         title: const Text('Notifications'),
       ),
       body: AnimatedBuilder(
-        animation: NotificationService.instance,
+        animation: _vm,
         builder: (context, _) {
-          final notifications = NotificationService.instance.notifications;
+          final notifications = _vm.notifications;
           if (notifications.isEmpty) {
             return const Center(child: Text('No notifications yet.'));
           }
@@ -21,18 +34,25 @@ class NotificationScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: notifications.length,
             separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (context, i) => ListTile(
-              leading: const Icon(Icons.notifications, color: Colors.blue),
-              title: Text(notifications[i].message),
-              onTap: () {
-                final msg = notifications[i].message.toLowerCase();
-                if (msg.contains('giỏ hàng')) {
-                  Navigator.of(context).pushNamed('/cart');
-                } else if (notifications[i].onTap != null) {
-                  notifications[i].onTap!();
-                }
-              },
-            ),
+            itemBuilder: (context, i) {
+              final n = notifications[i];
+              return ListTile(
+                leading: const Icon(Icons.notifications, color: Colors.blue),
+                title: Text(n.message),
+                onTap: () {
+                  // Prefer an explicit onTap callback stored with the notification.
+                  if (n.onTap != null) {
+                    n.onTap!();
+                    return;
+                  }
+                  // Fallback: simple message parsing for legacy notifications.
+                  final msg = (n.message ?? '').toLowerCase();
+                  if (msg.contains('giỏ hàng') || msg.contains('cart')) {
+                    Navigator.of(context).pushNamed('/cart');
+                  }
+                },
+              );
+            },
           );
         },
       ),

@@ -8,7 +8,10 @@ class LoginViewModel extends ChangeNotifier {
   bool loading = false;
   String? error;
 
-  LoginViewModel(this._repo);
+  // Allow creating the viewmodel without the screen needing to know about
+  // AuthRepository (keeps MVVM separation). A repo can still be injected
+  // for tests or higher-level DI.
+  LoginViewModel([AuthRepository? repo]) : _repo = repo ?? AuthRepository();
 
   Future<bool> login(String email, String password) async {
     loading = true;

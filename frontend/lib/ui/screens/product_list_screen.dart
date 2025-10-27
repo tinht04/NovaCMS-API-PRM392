@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/product_list_viewmodel.dart';
-import '../../repositories/product_repository.dart';
-import '../../core/network/api_client.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key, this.viewModel});
@@ -20,7 +18,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   void initState() {
     super.initState();
-    _vm = widget.viewModel ?? ProductListViewModel(ProductRepository(apiClient: ApiClient()));
+  // Do not construct repositories or API clients from the UI layer.
+  // If no viewModel is injected, create a default ProductListViewModel
+  // which will itself create a ProductRepository with a default ApiClient.
+  _vm = widget.viewModel ?? ProductListViewModel();
     _vmListener = () => setState(() {});
     _vm.addListener(_vmListener);
     // Ensure the view model loads items whether injected (tests) or created here (production).

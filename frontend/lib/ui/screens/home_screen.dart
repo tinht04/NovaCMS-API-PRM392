@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../viewmodels/product_list_viewmodel.dart';
-import '../../repositories/product_repository.dart';
-import '../../repositories/category_repository.dart';
-import '../../core/network/api_client.dart';
+import '../../viewmodels/home_viewmodel.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/product_card.dart';
 
@@ -17,19 +15,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final ProductListViewModel _vm;
+  late final HomeViewModel _homeVm;
   late final VoidCallback _vmListener;
+  late final VoidCallback _homeListener;
   final _scrollController = ScrollController();
-  List<Map<String, dynamic>> _categories = [];
 
   @override
   void initState() {
     super.initState();
-    _vm = ProductListViewModel(ProductRepository(apiClient: ApiClient()));
-    _vmListener = () => setState(() {});
-    _vm.addListener(_vmListener);
-    _vm.load();
-    // load categories from API
-    CategoryRepository().getAll().then((c) => setState(() => _categories = c));
+  // Don't construct repositories/api clients in the UI. Create viewmodels
+  // which own data-layer interactions. Tests can inject fakes by passing
+  // viewmodels into the widget if needed.
+  _vm = ProductListViewModel();
+  _homeVm = HomeViewModel();
+  _vmListener = () => setState(() {});
+  _homeListener = () => setState(() {});
+  _vm.addListener(_vmListener);
+  _homeVm.addListener(_homeListener);
+  _vm.load();
+  // Load categories via HomeViewModel
+  _homeVm.loadCategories();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - 300) {
@@ -41,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _vm.removeListener(_vmListener);
+    _homeVm.removeListener(_homeListener);
     _scrollController.dispose();
     super.dispose();
   }
@@ -197,8 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(
                       height: 100,
                       child:
-                          _categories.isEmpty
-                              ? ListView.builder(
+              _homeVm.categories.isEmpty
+                ? ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: 5,
                                 itemBuilder:
@@ -234,9 +240,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               )
                               : ListView.builder(
                                 scrollDirection: Axis.horizontal,
-                                itemCount: _categories.length,
+                                itemCount: _homeVm.categories.length,
                                 itemBuilder: (context, i) {
-                                  final c = _categories[i];
+                                  final c = _homeVm.categories[i];
                                   final name =
                                       c['categoryName'] ??
                                       c['category_name'] ??

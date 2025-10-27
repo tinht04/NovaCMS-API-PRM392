@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:overlay_support/overlay_support.dart';
-import '../../repositories/product_repository.dart';
-import '../../core/network/api_client.dart';
-import '../../services/cart_service.dart';
-import '../../services/notification_service.dart';
+import '../../viewmodels/product_detail_viewmodel.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key});
@@ -13,49 +10,40 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  final _repo = ProductRepository(apiClient: ApiClient());
-  bool _loading = true;
-  String? _error;
-  Map<String, dynamic>? _item;
-  int _currentImageIndex = 0;
-  bool _isFavorite = false;
+  late final ProductDetailViewModel _vm;
+  late final VoidCallback _vmListener;
+
+  @override
+  void initState() {
+    super.initState();
+    // UI does not construct repositories or services. Create a VM which
+    // will manage data/service interactions. Tests can inject a VM if
+    // needed by changing the widget to accept one.
+    _vm = ProductDetailViewModel();
+    _vmListener = () => setState(() {});
+    _vm.addListener(_vmListener);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final id = args?['id'] ?? 0;
-    _load(id as int);
-  }
-
-  Future<void> _load(int id) async {
-    if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _repo.getById(id);
-      if (mounted) setState(() => _item = data);
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    // Load the product via the viewmodel
+    _vm.load(id as int);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_loading) {
+    if (_vm.loading) {
       return Scaffold(
         backgroundColor: Colors.white,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    if (_error != null) {
+    if (_vm.error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Product Details')),
         body: Center(
@@ -64,30 +52,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
               const SizedBox(height: 16),
-              Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+              Text('Error: ${_vm.error}', style: const TextStyle(color: Colors.red)),
             ],
           ),
         ),
       );
     }
-    if (_item == null) {
+    if (_vm.item == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Product Details')),
         body: const Center(child: Text('Product not found')),
       );
     }
-
-    final title = _item?['name'] ?? _item?['equipmentName'] ?? 'Product';
-    final brand = _item?['brand'] ?? '';
-    final desc = _item?['description'] ?? 'No description available';
-    final price = _item?['pricePerDay'] ?? _item?['price'] ?? 0;
-    final deposit = _item?['depositFee'] ?? 0;
-    final stock = _item?['stock'] ?? 0;
-    final category = _item?['categoryName'] ?? '';
-    final available = _item?['isAvailable'] ?? false;
+    final item = _vm.item!;
+    final title = item['name'] ?? item['equipmentName'] ?? 'Product';
+    final brand = item['brand'] ?? '';
+    final desc = item['description'] ?? 'No description available';
+    final price = item['pricePerDay'] ?? item['price'] ?? 0;
+    final deposit = item['depositFee'] ?? 0;
+    final stock = item['stock'] ?? 0;
+    final category = item['categoryName'] ?? '';
+    final available = item['isAvailable'] ?? false;
     List images = [];
-    if (_item?['imageResponses'] is List)
-      images = _item?['imageResponses'] as List;
+    if (item['imageResponses'] is List) images = item['imageResponses'] as List;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -130,37 +117,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ],
                 ),
                 child: IconButton(
-                  icon: Icon(
-                    _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: Colors.red,
-                  ),
+                  icon: Icon(_vm.isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.red),
                   onPressed: () {
-                    setState(() {
-                      _isFavorite = !_isFavorite;
-                    });
+                    _vm.toggleFavorite();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Row(
                           children: [
-                            Icon(
-                              _isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.white,
-                            ),
+                            Icon(_vm.isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.white),
                             const SizedBox(width: 8),
-                            Text(
-                              _isFavorite
-                                  ? 'Added to favorites'
-                                  : 'Removed from favorites',
-                            ),
+                            Text(_vm.isFavorite ? 'Added to favorites' : 'Removed from favorites'),
                           ],
                         ),
-                        backgroundColor: _isFavorite ? Colors.red : Colors.grey,
+                        backgroundColor: _vm.isFavorite ? Colors.red : Colors.grey,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         duration: const Duration(seconds: 2),
                       ),
                     );
@@ -174,40 +145,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   images.isNotEmpty
                       ? PageView.builder(
-                        itemCount: images.length,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentImageIndex = index;
-                          });
-                        },
-                        itemBuilder: (context, i) {
-                          final img = images[i] as Map<String, dynamic>;
-                          final url = img['imageUrl'];
-                          return url == null
-                              ? Container(
-                                color: Colors.grey.shade200,
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  size: 64,
-                                  color: Colors.grey.shade400,
-                                ),
-                              )
-                              : Image.network(
-                                url,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
+                          itemCount: images.length,
+                          onPageChanged: (index) => _vm.setImageIndex(index),
+                          itemBuilder: (context, i) {
+                            final img = images[i] as Map<String, dynamic>;
+                            final url = img['imageUrl'];
+                            return url == null
+                                ? Container(
                                     color: Colors.grey.shade200,
                                     child: Icon(
-                                      Icons.broken_image,
+                                      Icons.camera_alt,
                                       size: 64,
                                       color: Colors.grey.shade400,
                                     ),
+                                  )
+                                : Image.network(
+                                    url,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey.shade200,
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          size: 64,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      );
+                                    },
                                   );
-                                },
-                              );
-                        },
-                      )
+                          },
+                        )
                       : Container(
                         color: Colors.grey.shade200,
                         child: Center(
@@ -230,13 +197,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           images.length,
                           (index) => Container(
                             margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: _currentImageIndex == index ? 24 : 8,
+                            width: _vm.currentImageIndex == index ? 24 : 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color:
-                                  _currentImageIndex == index
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.5),
+                              color: _vm.currentImageIndex == index ? Colors.white : Colors.white.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -319,8 +283,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 16),
 
                     // Title and Category
                     Text(
@@ -813,43 +775,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         if (result == null) return;
                         final start = result['start']!;
                         final end = result['end']!;
-                        final cartItem = Map<String, dynamic>.from(_item!);
-                        cartItem['rentalStartDate'] =
-                            start.toUtc().toIso8601String();
-                        cartItem['rentalEndDate'] =
-                            end.toUtc().toIso8601String();
-
-
-                        CartService.instance.addItem(cartItem);
-                        final productName = _item?['name'] ?? _item?['equipmentName'] ?? 'Sản phẩm';
-                        NotificationService.instance.add(
-                          'Đã thêm "$productName" vào giỏ hàng!',
-                          onTap: () {
-                            if (context.mounted) {
-                              Navigator.of(context).pushNamed('/cart');
-                            }
-                          },
-                        );
-
+                        final added = await _vm.addToCart(start, end);
                         if (!context.mounted) return;
-                        showSimpleNotification(
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).pushNamed('/cart');
-                            },
-                            child: Row(
-                              children: const [
-                                Icon(Icons.check_circle, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text('Added to cart successfully! Tap to view cart.'),
-                              ],
+                        if (added) {
+                          showSimpleNotification(
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pushNamed('/cart');
+                              },
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.check_circle, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text('Added to cart successfully! Tap to view cart.'),
+                                ],
+                              ),
                             ),
-                          ),
-                          background: Colors.green,
-                          autoDismiss: true,
-                          slideDismiss: true,
-                          position: NotificationPosition.top,
-                        );
+                            background: Colors.green,
+                            autoDismiss: true,
+                            slideDismiss: true,
+                            position: NotificationPosition.top,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add to cart')));
+                        }
                       },
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,

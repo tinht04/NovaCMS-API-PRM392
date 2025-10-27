@@ -12,7 +12,9 @@ class ProductListViewModel extends ChangeNotifier {
   bool _hasMore = true;
   bool _loadingMore = false;
 
-  ProductListViewModel(this._repo);
+  // Allow creating viewmodel without UI constructing repository. Tests
+  // can still pass a ProductRepository to inject fakes.
+  ProductListViewModel([ProductRepository? repo]) : _repo = repo ?? ProductRepository();
 
   Future<void> load({Map<String, dynamic>? filters}) async {
     loading = true;

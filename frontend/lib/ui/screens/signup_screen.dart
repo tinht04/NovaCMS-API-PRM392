@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../repositories/auth_repository.dart';
+import '../../viewmodels/signup_viewmodel.dart';
+
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,10 +14,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final _repo = AuthRepository();
-  bool _loading = false;
+  final _vm = SignupViewModel();
   bool _obscurePassword = true;
-  String? _error;
 
   @override
   void dispose() {
@@ -28,23 +27,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await _repo.register(
-        _nameCtrl.text.trim(),
-        _emailCtrl.text.trim(),
-        _passCtrl.text,
-      );
-      if (!mounted) return;
-      // If registration returned tokens, navigate to root
+    final res = await _vm.register(fullName: _nameCtrl.text.trim(), email: _emailCtrl.text.trim(), password: _passCtrl.text);
+    if (res != null && mounted) {
       Navigator.pushReplacementNamed(context, '/');
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -131,8 +116,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(32.0),
                         child: Form(
-                          key: _formKey,
-                          child: Column(
+                                  key: _formKey,
+                                  child: AnimatedBuilder(
+                                    animation: _vm,
+                                    builder: (context, _) {
+                                      return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // Name Field
@@ -270,7 +258,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               ),
 
                               // Error Message
-                              if (_error != null) ...[
+                              if (_vm.error != null) ...[
                                 const SizedBox(height: 16),
                                 Container(
                                   padding: const EdgeInsets.all(12),
@@ -291,7 +279,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          _error!,
+                                          _vm.error!,
                                           style: TextStyle(
                                             color: Colors.red.shade700,
                                             fontSize: 13,
@@ -309,7 +297,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               SizedBox(
                                 height: 54,
                                 child: ElevatedButton(
-                                  onPressed: _loading ? null : _submit,
+                                  onPressed: _vm.loading ? null : _submit,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: theme.primaryColor,
                                     foregroundColor: Colors.white,
@@ -318,30 +306,22 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ),
                                     elevation: 2,
                                   ),
-                                  child:
-                                      _loading
-                                          ? const SizedBox(
-                                            height: 24,
-                                            width: 24,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    Colors.white,
-                                                  ),
-                                            ),
-                                          )
-                                          : const Text(
-                                            'Create Account',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                  child: _vm.loading
+                                      ? const SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                           ),
+                                        )
+                                      : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                 ),
                               ),
                             ],
-                          ),
+                            );
+                          },
+                        ),
                         ),
                       ),
                     ),
