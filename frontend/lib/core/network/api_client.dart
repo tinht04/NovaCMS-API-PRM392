@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../env.dart';
+import '../endpoints.dart';
 import 'response_wrapper.dart';
 import 'exceptions.dart';
 import '../../services/cart_service.dart';
@@ -36,8 +37,35 @@ class ApiClient {
         final status = e.response?.statusCode;
         final data = e.response?.data;
 
-        // If unauthorized, perform global logout/cleanup and navigate to login
+        // If unauthorized, prefer to let the caller handle login errors for
+        // endpoints that are part of the auth flow (e.g. login/register).
         if (status == 401) {
+          // If server provided a structured message, prefer it.
+          String? serverMessage;
+          if (data is Map<String, dynamic>) {
+            try {
+              final wrapper = ApiResponseWrapper.fromMap(Map<String, dynamic>.from(data));
+              if (wrapper.message.isNotEmpty) serverMessage = wrapper.message;
+            } catch (_) {}
+          }
+
+          final reqPath = e.requestOptions.path;
+          // Be permissive: the request path may be a full URL or relative path.
+          final isAuthEndpoint = (reqPath.endsWith(Endpoints.login) || reqPath == Endpoints.login) || (reqPath.endsWith(Endpoints.register) || reqPath == Endpoints.register);
+          if (isAuthEndpoint) {
+            // Don't perform global logout/navigation if the failure came from
+            // the login/register endpoints — return a wrapped ApiException and
+            // let the ViewModel/UI decide how to present it so the login
+            // screen isn't immediately replaced.
+            final isLogin = reqPath.endsWith(Endpoints.login) || reqPath == Endpoints.login;
+            final apiEx = ApiException(
+                serverMessage ?? (isLogin ? 'Invalid username or password' : 'Unauthorized'),
+                statusCode: 401);
+            return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
+          }
+
+          // Otherwise treat as global unauthorized: clear tokens, local state
+          // and navigate to login.
           try {
             await _secureStorage.delete(key: 'access_token');
             await _secureStorage.delete(key: 'FlutterSecureStorage.access_token');
@@ -52,7 +80,7 @@ class ApiClient {
           // Navigate to login screen (remove all routes)
           gotoLogin();
 
-          final apiEx = ApiException('Unauthorized', statusCode: 401);
+          final apiEx = ApiException(serverMessage ?? 'Unauthorized', statusCode: 401);
           return handler.reject(DioException(requestOptions: e.requestOptions, error: apiEx));
         }
 
